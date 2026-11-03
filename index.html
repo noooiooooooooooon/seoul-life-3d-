@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <meta name="theme-color" content="#090d16" />
+  <title>SEOUL CRIME — 3D Open World</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+    :root{--lime:#c7ff4a;--cyan:#42d9ff;--red:#ff4d5e;--panel:rgba(8,13,23,.82);--line:rgba(255,255,255,.15)}
+    *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090d16;color:#fff;font-family:'Noto Sans KR',sans-serif} canvas{display:block}
+    #game{position:fixed;inset:0}
+    #hud{position:fixed;inset:0;pointer-events:none;display:none}
+    .panel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px);border-radius:13px;box-shadow:0 12px 35px #0005}
+    #brand{position:absolute;left:22px;top:18px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+    #brandMark{width:30px;height:30px;border-radius:8px;background:var(--lime);color:#111;display:grid;place-items:center;font-weight:900}
+    #brand strong{font-family:'Black Han Sans',sans-serif;letter-spacing:1px;font-size:17px}#brand small{display:block;color:#9eabba;font-size:9px;letter-spacing:2px}
+    #wanted{position:absolute;right:22px;top:20px;padding:10px 15px;text-align:right;min-width:170px}
+    #wantedLabel{font-size:10px;color:#a6b1c1;letter-spacing:1.5px;font-weight:700}#stars{font-size:26px;letter-spacing:3px;color:#586171;margin-top:2px;text-shadow:0 2px 12px #000}#stars .on{color:#ffd34e;text-shadow:0 0 10px #ffb72e}
+    #status{position:absolute;left:22px;bottom:22px;width:245px;padding:13px 15px}
+    .statrow{display:flex;justify-content:space-between;font-size:11px;color:#b9c4d3;margin-bottom:6px}.bar{height:7px;border-radius:9px;background:#26303e;overflow:hidden;margin-bottom:10px}.bar>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#8be34a,#d5ff5b);border-radius:9px;transition:width .2s}
+    #cash{font-size:20px;font-weight:900;color:var(--lime);font-variant-numeric:tabular-nums}
+    #mission{position:absolute;left:50%;top:22px;transform:translateX(-50%);padding:10px 16px;min-width:220px;text-align:center}
+    #mission .eyebrow{font-size:9px;letter-spacing:2px;color:var(--lime);font-weight:900}#missionText{font-size:12px;font-weight:700;margin-top:3px}
+    #hint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);padding:9px 14px;font-size:11px;color:#dce6f3;white-space:nowrap}
+    #minimap{position:absolute;right:22px;bottom:22px;width:156px;height:156px;border-radius:14px;overflow:hidden;border:1px solid #ffffff35;background:#091321cc;box-shadow:0 10px 25px #0007}
+    #mapCanvas{width:100%;height:100%}#mapCaption{position:absolute;left:10px;top:8px;font-size:8px;letter-spacing:1.6px;color:#ffffffa0}
+    #toast{position:absolute;top:85px;left:50%;transform:translateX(-50%);padding:10px 16px;border:1px solid #c7ff4a55;border-radius:10px;background:#101b13ed;color:#dfffaa;font-size:12px;font-weight:700;opacity:0;transition:opacity .25s}
+    #crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff9;box-shadow:0 0 5px #000;transform:translate(-50%,-50%)}
+    #start{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(110deg,#080d17ee,#101b2be0),radial-gradient(circle at 70% 40%,#1e4360,#090d16 65%)}
+    #start:before{content:'';position:absolute;inset:0;background:linear-gradient(transparent 95%,#ffffff0b 96%),linear-gradient(90deg,transparent 95%,#ffffff0b 96%);background-size:42px 42px;mask-image:linear-gradient(90deg,#000,transparent)}
+    .startCard{position:relative;width:min(720px,calc(100% - 32px));padding:34px;border:1px solid #ffffff27;border-radius:22px;background:#0b1321d9;box-shadow:0 25px 90px #0009}
+    .tag{font-size:10px;font-weight:900;letter-spacing:3px;color:var(--lime)}h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(42px,9vw,76px);line-height:1;margin:13px 0 10px;letter-spacing:1px}h1 span{color:var(--lime)}
+    .sub{color:#b4c0d0;font-size:14px;line-height:1.7;max-width:560px}.featureGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:24px 0}.feature{padding:12px;border-radius:11px;background:#ffffff09;border:1px solid #ffffff14}.feature b{font-size:12px;display:block}.feature small{color:#9caabd;font-size:10px}
+    button{font:inherit;cursor:pointer;border:0}.startBtn{width:100%;border-radius:11px;padding:15px;background:var(--lime);color:#111;font-weight:900;font-size:15px;box-shadow:0 7px 24px #c7ff4a29}.startBtn:active{transform:translateY(1px)}.fine{font-size:10px;color:#8290a3;margin-top:13px;text-align:center}
+    #mobile{display:none;position:fixed;inset:0;pointer-events:none}#pad{position:absolute;left:18px;bottom:25px;display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px 48px;gap:4px;pointer-events:auto}#pad button,#actions button{background:#07101dcc;border:1px solid #ffffff3b;border-radius:12px;color:white;font-size:17px;font-weight:900;backdrop-filter:blur(8px);touch-action:none}#up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
+    #actions{position:absolute;right:18px;bottom:26px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}#actions button{width:62px;height:48px;font-size:10px}#actions .primary{background:#c7ff4a;color:#111;border-color:#c7ff4a}
+    #pause{position:absolute;top:18px;left:50%;transform:translateX(-50%);pointer-events:auto;background:#0b1321cc;border:1px solid #ffffff2a;color:white;border-radius:9px;padding:8px 12px;font-size:10px;display:none}
+    @media(max-width:700px){#brand{left:10px;top:10px;padding:7px 9px}#brand strong{font-size:13px}#brandMark{width:24px;height:24px}#wanted{right:10px;top:10px;min-width:125px;padding:7px 9px}#stars{font-size:20px}#mission{top:65px;min-width:180px;padding:8px 11px}#status{left:10px;bottom:15px;width:150px;padding:9px 10px}#cash{font-size:16px}#minimap{right:10px;bottom:15px;width:112px;height:112px}#hint{bottom:150px;font-size:9px;max-width:85vw;white-space:normal;text-align:center}#mobile{display:block}.featureGrid{grid-template-columns:1fr 1fr 1fr}.feature{padding:9px 6px}.feature b{font-size:10px}.feature small{font-size:8px}.startCard{padding:23px 18px}.sub{font-size:12px}}
+  </style>
+  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+</head>
+<body>
+<div id="game"></div>
+<div id="start"><div class="startCard">
+  <div class="tag">SINGLE PLAYER · SEOUL OPEN WORLD</div>
+  <h1>SEOUL <span>CRIME</span></h1>
+  <div class="sub">서울의 밤거리를 누비는 3D 오픈월드 액션 프로토타입. 직접 걷고, 차를 몰고, 시민들과 마주치고, 한국 경찰의 추격을 따돌려 보세요.</div>
+  <div class="featureGrid"><div class="feature"><b>🏙 서울 오픈월드</b><small>광화문 · 명동 · 북촌 · 청계천</small></div><div class="feature"><b>🚔 6단계 수배</b><small>한국 경찰 추격 AI</small></div><div class="feature"><b>🚶 생활 NPC</b><small>시민 · 차량 · 보행자</small></div></div>
+  <button class="startBtn" id="play">게임 시작</button><div class="fine">PC: WASD 이동 · Space 점프 · 마우스 드래그 시점 · E 차량 탑승 · F 미션 · J 소란 · Shift 달리기</div>
+</div></div>
+<div id="hud">
+  <div id="brand" class="panel"><div id="brandMark">S</div><div><strong>SEOUL CRIME</strong><small>SEOUL DISTRICT · 01</small></div></div>
+  <div id="mission" class="panel"><div class="eyebrow">CURRENT OBJECTIVE</div><div id="missionText">지도에서 배달 임무를 찾아보세요</div></div>
+  <div id="wanted" class="panel"><div id="wantedLabel">서울경찰청 · 수배 레벨</div><div id="stars">☆☆☆☆☆☆</div></div>
+  <div id="status" class="panel"><div class="statrow"><span>체력</span><b id="healthNum">100%</b></div><div class="bar"><i id="healthBar"></i></div><div class="statrow"><span>보유 금액</span><b>WON</b></div><div id="cash">₩ 12,000</div></div>
+  <div id="hint" class="panel">WASD 이동 · E 차량 탑승/하차 · F 상호작용 · J 소란</div>
+  <div id="minimap"><canvas id="mapCanvas" width="220" height="220"></canvas><div id="mapCaption">SEOUL / RADAR</div></div>
+  <div id="toast"></div><div id="crosshair"></div>
+</div>
+<div id="mobile"><div id="pad"><button id="up">▲</button><button id="left">◀</button><button id="down">▼</button><button id="right">▶</button></div><div id="actions"><button id="sprint">달리기</button><button id="jump">점프</button><button id="enter">차량 E</button><button id="interact">미션 F</button><button id="crime" class="primary">소란 J</button></div></div>
+<script type="module">
+import * as THREE from 'three';
+
+const $=id=>document.getElementById(id);
+const gameRoot=$('game');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x92a8ba); scene.fog=new THREE.Fog(0x92a8ba,85,225);
+const camera=new THREE.PerspectiveCamera(63,innerWidth/innerHeight,.1,400);
+const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15; gameRoot.appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xc8e3ff,0x435060,2.0));
+const sun=new THREE.DirectionalLight(0xffe3bf,2.1); sun.position.set(-55,90,35); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-130;sun.shadow.camera.right=130;sun.shadow.camera.top=130;sun.shadow.camera.bottom=-130;scene.add(sun);
+const mat=(color,roughness=.85,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+const mats={road:mat(0x303944),side:mat(0x8b9295),line:mat(0xe9e4cc),grass:mat(0x6c846c),glass:mat(0x29485b,.3,.25),white:mat(0xe8e6df),black:mat(0x202630),skin:mat(0xd6a17b),yellow:mat(0xffd33e),blue:mat(0x2765a8),red:mat(0xd8473e)};
+const box=(w,h,d,material,x,y,z,parent=scene)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
+const cylinder=(r1,r2,h,material,x,y,z,parent=scene)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,12),material);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
+
+// City ground, road grid and blocks
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,260),mat(0x788a7a));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;ground.receiveShadow=true;scene.add(ground);
+const roads=[-90,-45,0,45,90];
+for(const v of roads){box(260,.12,13,mats.road,0,.01,v);box(13,.12,260,mats.road,v,.012,0);}
+// road lane markings
+for(const v of roads){for(let p=-122;p<125;p+=12){box(4,.025,.18,mats.line,p,.09,v);box(.18,.025,4,mats.line,v,.09,p);}}
+// Sidewalk strips along streets
+for(const v of roads){box(260,.25,2.4,mats.side,0,.08,v+8);box(260,.25,2.4,mats.side,0,.08,v-8);box(2.4,.25,260,mats.side,v+8,.08,0);box(2.4,.25,260,mats.side,v-8,.08,0);}
+const buildingBlocks=[];
+const buildingColors=[0x8c9aa2,0xb2a99b,0x687e8e,0xb9b8ad,0x827e88,0xc1b8a5,0x708b85];
+function building(x,z,w,d,h,color){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);box(w,h,d,mat(color),0,h/2,0,g);box(w+.5,.65,d+.5,mat(0x3d4b5a),0,h+.32,0,g); // rooftop rim
+  const rows=Math.max(2,Math.floor(h/3.2));for(let r=0;r<rows;r++){for(let c=0;c<Math.max(2,Math.floor(w/3.8));c++){const wx=-w/2+1.5+c*3.8;const wy=1.7+r*3.2;if(wy<h-1)box(1.15,1.15,.06,mat(r%2?0x263f50:0x354c5e,.28),wx,wy,d/2+.035,g);}}
+  buildingBlocks.push({x,z,w,d,h});return g;}
+for(let ix=-2;ix<=1;ix++)for(let iz=-2;iz<=1;iz++){
+ const cx=ix*45+22.5,cz=iz*45+22.5;
+ // preserve the stream corridor and landmark plazas
+ if(Math.abs(cz+22)<13)continue;
+ const count=2+((ix+iz+8)%3);
+ for(let i=0;i<count;i++){
+  const x=cx+(i%2?9:-9)+(Math.sin(ix*4+iz*3+i)*2),z=cz+(i<2?-8:8)+(Math.cos(iz*5+ix+i)*2);
+  const w=10+(i%3)*2,d=9+(i%2)*3,h=12+((ix*7+iz*5+i*11+80)%5)*5;
+  building(x,z,w,d,h,buildingColors[Math.abs(ix*3+iz*2+i)%buildingColors.length]);
+ }
+}
+// Cheonggyecheon stream running east-west
+box(260,.35,11,mat(0x397d91,.22,.25),0,-.02,-22);
+box(260,.45,1.2,mat(0x9ca9a1),0,.12,-28.2);box(260,.45,1.2,mat(0x9ca9a1),0,.12,-15.8);
+for(let x=-100;x<115;x+=38){box(9,.55,13,mat(0x9b9d9a),x,.28,-22);}
+// Trees
+function tree(x,z,s=1){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(.23*s,.36*s,2.1*s,mat(0x6a4934),0,1*s,0,g);const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(1.3*s,1),mat(0x326b52));leaves.position.y=2.3*s;leaves.castShadow=true;g.add(leaves);}
+for(let x=-115;x<=115;x+=14){for(const z of [-12,-32,12,32,57,-57,102]){if(Math.abs(z+22)>12)tree(x,z,.75+((x+z)%3)*.05);}}
+
+// Landmark: Gwanghwamun-inspired gate
+const gate=new THREE.Group();gate.position.set(-4,0,69);scene.add(gate);
+const stone=mat(0xd1c6ae),roof=mat(0x273f37),darkWood=mat(0x654332);
+box(18,1.1,3,stone,0,.6,0,gate);for(const x of [-6.2,0,6.2]){box(1.8,7,2.2,stone,x,4,0,gate);box(2.3,.6,2.6,darkWood,x,7.5,0,gate);}
+box(19,1.1,4,darkWood,0,8.4,0,gate);const roofShape=new THREE.Mesh(new THREE.ConeGeometry(11,3.2,4),roof);roofShape.rotation.y=Math.PI/4;roofShape.position.set(0,10.4,0);roofShape.scale.z=.65;roofShape.castShadow=true;gate.add(roofShape);
+box(18,.5,1.4,mat(0x263b33),0,9.1,0,gate);
+// Hanok village area
+function hanok(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);box(9,2.8,7,mat(0xb49d7c),0,1.4,0,g);box(9.8,.35,7.8,mat(0x4b3530),0,2.95,0,g);const r1=box(11,.28,4.5,mat(0x354c3e),0,3.35,0,g);r1.rotation.z=-.12;const r2=box(11,.28,4.5,mat(0x354c3e),0,3.35,0,g);r2.rotation.z=.12;box(2,2,.12,mat(0x523d30),0,1.05,3.56,g);}
+for(let x=-75;x<-46;x+=14)for(let z=15;z<45;z+=13)hanok(x,z);
+// Myeongdong neon-style signs
+function sign(x,y,z,width,text,color=0xff4778){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#111827';ctx.fillRect(0,0,512,128);ctx.strokeStyle='#ffffff70';ctx.lineWidth=5;ctx.strokeRect(4,4,504,120);ctx.fillStyle='#'+color.toString(16).padStart(6,'0');ctx.font='bold 62px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,67);const tex=new THREE.CanvasTexture(c);const m=new THREE.Mesh(new THREE.PlaneGeometry(width,2.4),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);scene.add(m);}
+sign(53,9,38,9,'명동 STREET',0xff4778);sign(68,13,23,8,'SEOUL 24H',0x42d9ff);sign(37,8,53,7,'분식 · 카페',0xffca58);
+
+// streetlights
+for(const v of roads){for(let p=-100;p<=100;p+=45){for(const side of [-1,1]){const x=v+side*10,z=p;cylinder(.12,.16,5,mat(0x313943),x,2.5,z);box(.9,.12,.2,mat(0x313943),x+side*.35,5,z);const l=new THREE.PointLight(0xffdca0,.22,12);l.position.set(x+side*.6,4.8,z);scene.add(l);}}}
+
+// Characters and vehicles
+function person(color=0x426a90,police=false){const g=new THREE.Group();const shirt=mat(color),pants=mat(police?0x172b49:0x333a45),skin=mat(0xd6a17b);const torso=box(.75,1.05,.42,shirt,0,1.45,0,g);const head=new THREE.Mesh(new THREE.SphereGeometry(.27,12,10),skin);head.position.y=2.18;head.castShadow=true;g.add(head);const legL=box(.25,.78,.3,pants,-.2,.47,0,g),legR=box(.25,.78,.3,pants,.2,.47,0,g);const armL=box(.2,.75,.22,shirt,-.52,1.48,0,g),armR=box(.2,.75,.22,shirt,.52,1.48,0,g);if(police){box(.35,.22,.44,mat(0x172b49),0,2.43,0,g);box(.12,.08,.08,mat(0xe7e7e7),0,2.31,.23,g);}return {group:g,legL,legR,armL,armR,torso};}
+function carModel(color=0xd5d8da,police=false){const g=new THREE.Group();const body=mat(color,.45,.25),glass=mat(0x203c50,.2,.3),tire=mat(0x15191f,.95),rim=mat(0xaeb9c2,.35,.6);box(2.25,.72,4.5,body,0,.85,0,g);box(1.65,.85,2.3,glass,0,1.58,-.15,g);box(1.9,.22,.5,body,0,1.12,1.65,g);for(const x of [-1.15,1.15])for(const z of [-1.45,1.45]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.28,16),tire);w.rotation.z=Math.PI/2;w.position.set(x,.47,z);g.add(w);const hub=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.3,12),rim);hub.rotation.z=Math.PI/2;hub.position.set(x,.47,z);g.add(hub);}for(const x of [-.78,.78]){const light=box(.34,.18,.12,mat(0xffefcf,.3),x,.9,2.27,g);}if(police){box(.9,.16,.4,mat(0x111820),0,2.08,0,g);for(const side of [-1,1]){box(.1,.22,3.6,mat(0x244f83),side*1.14,1.0,0,g);const badgeCanvas=document.createElement('canvas');badgeCanvas.width=256;badgeCanvas.height=64;const bx=badgeCanvas.getContext('2d');bx.fillStyle='#ffffff';bx.fillRect(0,0,256,64);bx.fillStyle='#164b87';bx.font='bold 36px sans-serif';bx.textAlign='center';bx.textBaseline='middle';bx.fillText('경찰 POLICE',128,33);const badgeTex=new THREE.CanvasTexture(badgeCanvas);const badge=new THREE.Mesh(new THREE.PlaneGeometry(1.25,.31),new THREE.MeshBasicMaterial({map:badgeTex,transparent:true,side:THREE.DoubleSide}));badge.position.set(side*1.205,1.28,0);badge.rotation.y=side*Math.PI/2;g.add(badge);}const red=new THREE.Mesh(new THREE.BoxGeometry(.36,.18,.18),mat(0xff2b39,.3));red.position.set(-.24,2.2,0);g.add(red);const blue=new THREE.Mesh(new THREE.BoxGeometry(.36,.18,.18),mat(0x2b91ff,.3));blue.position.set(.24,2.2,0);g.add(blue);g.userData.sirens=[red,blue];}g.userData.wheels=[];return g;}
+const player=person(0x3f789e);player.group.position.set(0,0,8);scene.add(player.group);
+let playerPos=player.group.position,playerAngle=0,health=100,cash=12000,wanted=0,crimePoints=0,escapeTimer=0,missionState=0,missionMoney=0;
+let inCar=null,gameStarted=false,paused=false,playerVertical=0,jumpRequested=false;
+const vehicles=[],traffic=[],policeCars=[],npcs=[];
+const playerCar=carModel(0xd7dadc);playerCar.position.set(5,0,10);scene.add(playerCar);vehicles.push({mesh:playerCar,owned:true,speed:0,angle:0});
+const trafficColors=[0xedefec,0x202a34,0x5d7896,0xd6b14d,0x9c4540,0xb9c5c7];
+for(let i=0;i<13;i++){const vertical=i%2===0;const lane=roads[(i*3)%roads.length]+(vertical?2: -2);const t=carModel(trafficColors[i%trafficColors.length]);t.position.set(vertical?lane:-105+i*17,0,vertical?-105+i*16:lane);t.rotation.y=vertical?0:Math.PI/2;scene.add(t);const v={mesh:t,angle:t.rotation.y,speed:3.5+(i%4),vertical,dir:i%3===0?-1:1};vehicles.push(v);traffic.push(v);}
+// Pedestrian navigation pockets
+for(let i=0;i<27;i++){const n=person([0x4f8e8a,0x8a648b,0x547ca5,0x9d7952,0xb6b8be,0x385c49][i%6]);const x=(Math.random()-.5)*200,z=(Math.random()-.5)*200;n.group.position.set(x,0,z);scene.add(n.group);npcs.push({model:n,target:new THREE.Vector3(x+(Math.random()-.5)*15,0,z+(Math.random()-.5)*15),speed:.5+Math.random()*.55,phase:Math.random()*6});}
+
+// Mission markers
+function marker(x,z,color){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(2.4,.16,8,32),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9}));ring.rotation.x=Math.PI/2;ring.position.y=.18;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.7,4,16,1,true),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.17,side:THREE.DoubleSide}));beam.position.y=2;g.add(beam);return g;}
+const pickup=marker(25,-42,0xc7ff4a),delivery=marker(90,45,0x42d9ff);delivery.visible=false;
+
+// Input
+const keys={};addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.toLowerCase()]=true;if(e.code==='Space'){keys.space=true;jumpRequested=true;}if(!gameStarted)return;if(e.repeat)return;if(e.key.toLowerCase()==='e')toggleCar();if(e.key.toLowerCase()==='f')interact();if(e.key.toLowerCase()==='j')causeTrouble();if(e.key.toLowerCase()==='h')toast('경적을 울렸습니다');if(e.key==='Escape')togglePause();});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')keys.space=false;});
+let drag=false,lastX=0;renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0){drag=true;lastX=e.clientX;}});addEventListener('pointerup',()=>drag=false);addEventListener('pointermove',e=>{if(drag&&gameStarted&&!inCar){playerAngle-=(e.clientX-lastX)*.006;lastX=e.clientX;}});
+function bindHold(id,key){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});for(const ev of ['pointerup','pointerleave','pointercancel'])el.addEventListener(ev,()=>keys[key]=false);}
+bindHold('up','w');bindHold('down','s');bindHold('left','a');bindHold('right','d');bindHold('sprint','shift');$('jump').addEventListener('pointerdown',e=>{e.preventDefault();jumpRequested=true;});$('enter').addEventListener('pointerdown',e=>{e.preventDefault();toggleCar();});$('interact').addEventListener('pointerdown',e=>{e.preventDefault();interact();});$('crime').addEventListener('pointerdown',e=>{e.preventDefault();causeTrouble();});
+function toast(message){const el=$('toast');el.textContent=message;el.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.opacity=0,2200);}
+function togglePause(){paused=!paused;toast(paused?'일시정지':'게임 재개');}
+function raiseWanted(){wanted=Math.min(6,wanted+1);crimePoints=0;escapeTimer=0;toast(`수배 레벨 상승! ★ ${wanted}단계`);}
+function causeTrouble(){if(performance.now()-(causeTrouble.last||0)<1700)return;causeTrouble.last=performance.now();raiseWanted();}
+function toggleCar(){if(inCar){inCar.mesh.visible=true;player.group.visible=true;player.group.position.copy(inCar.mesh.position);player.group.position.x+=Math.sin(inCar.angle+Math.PI/2)*2;player.group.position.z+=Math.cos(inCar.angle+Math.PI/2)*2;playerPos=player.group.position;playerAngle=inCar.angle;inCar.speed*=.35;inCar=null;toast('차량에서 내렸습니다');return;}
+ let nearest=null,dist=5.5;for(const v of vehicles){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
+ if(nearest){inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;raiseWanted();toast('차량을 확보했습니다 · 수배 1단계');}else toast('탑승할 차량이 가까이 없습니다');}
+function interact(){if(missionState===0&&playerPos.distanceTo(pickup.position)<9){missionState=1;pickup.visible=false;delivery.visible=true;$('missionText').textContent='배달 목적지: 동쪽 청계천 건너편';toast('배달 임무 시작! 목적지로 이동하세요');return;}if(missionState===1&&playerPos.distanceTo(delivery.position)<10){missionState=2;delivery.visible=false;cash+=18000;$('missionText').textContent='임무 완료 · 다음 임무 준비 중';toast('배달 성공! ₩18,000 획득');return;}if(missionState===2&&playerPos.distanceTo(pickup.position)<9){missionState=0;pickup.visible=true;$('missionText').textContent='지도에서 배달 임무를 찾아보세요';toast('새 배달 임무가 등록됐습니다');return;}toast('근처에 상호작용할 대상이 없습니다');}
+$('play').onclick=()=>{$('start').style.display='none';$('hud').style.display='block';gameStarted=true;toast('서울에 오신 것을 환영합니다');};
+
+// Collision with building footprints (simple circular resolution)
+function resolveBuildings(pos,radius){for(const b of buildingBlocks){const minX=b.x-b.w/2-radius,maxX=b.x+b.w/2+radius,minZ=b.z-b.d/2-radius,maxZ=b.z+b.d/2+radius;if(pos.x>minX&&pos.x<maxX&&pos.z>minZ&&pos.z<maxZ){const dx=Math.min(Math.abs(pos.x-minX),Math.abs(maxX-pos.x)),dz=Math.min(Math.abs(pos.z-minZ),Math.abs(maxZ-pos.z));if(dx<dz)pos.x=pos.x-b.x>0?maxX:minX;else pos.z=pos.z-b.z>0?maxZ:minZ;}}pos.x=THREE.MathUtils.clamp(pos.x,-124,124);pos.z=THREE.MathUtils.clamp(pos.z,-124,124);}
+function playerStep(dt){const forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),turn=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);if(inCar){const v=inCar;v.speed+=forward*(keys.shift?25:17)*dt;v.speed*=Math.pow(.985,dt*60);v.speed=THREE.MathUtils.clamp(v.speed,-8,keys.shift?32:24);v.angle+=turn*dt*(1.55+Math.abs(v.speed)*.045)*Math.sign(v.speed||1);v.mesh.rotation.y=v.angle;const next=v.mesh.position.clone();next.x+=Math.sin(v.angle)*v.speed*dt;next.z+=Math.cos(v.angle)*v.speed*dt;resolveBuildings(next,1.7);v.mesh.position.copy(next);playerPos=v.mesh.position;
+ }else{if(jumpRequested&&player.group.position.y<=.025)playerVertical=7.2;jumpRequested=false;playerVertical-=18*dt;player.group.position.y=Math.max(0,player.group.position.y+playerVertical*dt);if(player.group.position.y===0)playerVertical=0;playerAngle+=turn*dt*2.5;const speed=keys.shift?9:5.2;const move=new THREE.Vector3(Math.sin(playerAngle),0,Math.cos(playerAngle)).multiplyScalar(forward*speed*dt);const next=playerPos.clone().add(move);resolveBuildings(next,.65);player.group.position.copy(next);playerPos=player.group.position;player.group.rotation.y=playerAngle;const walking=Math.abs(forward)>0;if(walking){const swing=Math.sin(performance.now()*.012)*.55;player.legL.rotation.x=swing;player.legR.rotation.x=-swing;player.armL.rotation.x=-swing*.7;player.armR.rotation.x=swing*.7;}else{player.legL.rotation.x=player.legR.rotation.x=0;}}
+}
+function npcStep(dt,time){for(const n of npcs){const p=n.model.group.position;const to=n.target.clone().sub(p);if(to.length()<1.7){n.target.set(THREE.MathUtils.clamp(p.x+(Math.random()-.5)*23,-115,115),0,THREE.MathUtils.clamp(p.z+(Math.random()-.5)*23,-115,115));}else{const dir=to.normalize();const flee=wanted>0&&p.distanceTo(playerPos)<13;if(flee)dir.copy(p).sub(playerPos).normalize();p.addScaledVector(dir,n.speed*(flee?2.6:1)*dt);n.model.group.rotation.y=Math.atan2(dir.x,dir.z);const swing=Math.sin(time*.006+n.phase)*.35;n.model.legL.rotation.x=swing;n.model.legR.rotation.x=-swing;}}}
+function trafficStep(dt){for(const v of traffic){const p=v.mesh.position;if(v.vertical)p.z+=v.dir*v.speed*dt;else p.x+=v.dir*v.speed*dt;if(p.x>125)p.x=-125;if(p.x< -125)p.x=125;if(p.z>125)p.z=-125;if(p.z< -125)p.z=125;}}
+function spawnPolice(){const a=Math.random()*Math.PI*2;const m=carModel(0xf0f2ed,true);m.position.set(playerPos.x+Math.cos(a)*34,0,playerPos.z+Math.sin(a)*34);scene.add(m);policeCars.push({mesh:m,angle:a,speed:0});}
+let policeSpawnTick=0,arrestTick=0;
+function policeStep(dt,time){if(wanted===0){for(const p of policeCars){scene.remove(p.mesh);}policeCars.length=0;return;}policeSpawnTick-=dt;if(policeCars.length<Math.min(6,wanted+1)&&policeSpawnTick<=0){spawnPolice();policeSpawnTick=2.5;}
+ let closest=999;for(const p of policeCars){const pos=p.mesh.position;const delta=playerPos.clone().sub(pos);const d=delta.length();closest=Math.min(closest,d);const desired=Math.atan2(delta.x,delta.z);let diff=Math.atan2(Math.sin(desired-p.angle),Math.cos(desired-p.angle));p.angle+=THREE.MathUtils.clamp(diff,-dt*1.6,dt*1.6);const speed=8+wanted*1.7;p.mesh.position.x+=Math.sin(p.angle)*speed*dt;p.mesh.position.z+=Math.cos(p.angle)*speed*dt;p.mesh.rotation.y=p.angle;p.mesh.userData.sirens.forEach((s,i)=>s.material.color.setHex(Math.sin(time*.015)>0?(i===0?0xff2525:0x257fff):(i===0?0x257fff:0xff2525)));}
+ if(closest>65){escapeTimer+=dt;if(escapeTimer>18){wanted=Math.max(0,wanted-1);escapeTimer=0;toast(wanted?'경찰을 따돌렸습니다 · 수배 단계 하락':'수배가 해제됐습니다');}}else escapeTimer=0;
+ if(!inCar&&closest<3.2){arrestTick+=dt;if(arrestTick>3){health-=18;arrestTick=0;toast('경찰에게 제압당했습니다');if(health<=0){health=100;wanted=0;playerPos.set(0,0,8);cash=Math.max(0,cash-3000);toast('병원에서 깨어났습니다 · 벌금 ₩3,000');}}}else arrestTick=Math.max(0,arrestTick-dt*2);
+}
+
+// Follow camera and minimap
+function cameraStep(dt){const angle=inCar?inCar.angle:playerAngle;const target=playerPos.clone();target.y=1.2;const distance=inCar?11:9;const desired=new THREE.Vector3(target.x-Math.sin(angle)*distance,target.y+(inCar?5.2:4.8),target.z-Math.cos(angle)*distance);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,target.y+.3,target.z);}
+const mapCtx=$('mapCanvas').getContext('2d');function drawMap(){const c=mapCtx;c.clearRect(0,0,220,220);c.fillStyle='#0c1924';c.fillRect(0,0,220,220);c.save();c.translate(110,110);c.scale(1,-1);const scale=0.78;c.scale(scale,scale);c.translate(-playerPos.x,-playerPos.z);c.strokeStyle='#42515b';c.lineWidth=13;for(const v of roads){c.beginPath();c.moveTo(-130,v);c.lineTo(130,v);c.stroke();c.beginPath();c.moveTo(v,-130);c.lineTo(v,130);c.stroke();}c.strokeStyle='#3a8399';c.lineWidth=11;c.beginPath();c.moveTo(-130,-22);c.lineTo(130,-22);c.stroke();c.fillStyle='#c7ff4a';c.beginPath();c.arc(25,-42,2.8,0,Math.PI*2);c.fill();if(missionState===1){c.fillStyle='#42d9ff';c.beginPath();c.arc(90,45,3,0,Math.PI*2);c.fill();}c.fillStyle='#ff4558';for(const p of policeCars){c.beginPath();c.arc(p.mesh.position.x,p.mesh.position.z,2.2,0,Math.PI*2);c.fill();}c.fillStyle='#fff';c.beginPath();c.arc(playerPos.x,playerPos.z,3.5,0,Math.PI*2);c.fill();c.restore();c.strokeStyle='#ffffff24';c.lineWidth=2;c.strokeRect(3,3,214,214);}
+function updateHud(dt){$('stars').innerHTML=Array.from({length:6},(_,i)=>`<span class="${i<wanted?'on':''}">${i<wanted?'★':'☆'}</span>`).join('');$('healthNum').textContent=Math.round(health)+'%';$('healthBar').style.width=health+'%';$('cash').textContent='₩ '+cash.toLocaleString('ko-KR');$('hint').textContent=inCar?'WASD 운전 · Shift 가속 · E 하차 · J 소란':'WASD 이동 · Space 점프 · Shift 달리기 · E 차량 탑승 · F 미션 · J 소란';drawMap();}
+let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time=now;if(gameStarted&&!paused){playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);updateHud(dt);if(pickup.visible)pickup.rotation.y+=dt*.7;if(delivery.visible)delivery.rotation.y+=dt*.7;}renderer.render(scene,camera);}requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body>
+</html>
