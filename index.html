@@ -366,6 +366,56 @@ for(const v of roads){for(const side of [-1,1]){
  }
 }}
 
+// Korean bus stops with shelters, route boards, benches and stop poles.
+const busStops=[];
+function makeBusStop(x,z,route,place){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ box(5.6,.18,9.5,mat(0x777f7d),0,.16,0,g);
+ box(5.4,.18,8.8,mat(0x253f50),0,3.0,0,g);
+ for(const side of [-1,1]){
+  box(.12,2.8,.12,mat(0x71878d),side*2.55,1.55,-4.1,g);
+  box(.12,2.8,.12,mat(0x71878d),side*2.55,1.55,4.1,g);
+  box(.08,2.3,7.7,mat(0x91b4bd,.3,.15,{transparent:true,opacity:.22}),side*2.52,1.45,0,g);
+ }
+ box(3.4,.18,.7,mat(0x416071),0,.85,2.65,g);
+ for(const px of [-1.2,1.2])box(.12,.7,.12,mat(0x2b3940),px,.43,2.65,g);
+ addSign(g,'버스정류장 · '+place,'#58c5e9',4.5,.65,2.55,-4.6);
+ addSign(g,route,'#f5ce64',1.5,.38,2.15,4.65);
+ const pole=new THREE.Group();pole.position.set(3.2,0,0);g.add(pole);
+ box(.12,3,.12,mat(0x4c5b60),0,1.5,0,pole);box(.75,1.15,.18,mat(0x1c6e91),0,2.3,0,pole);
+ addSign(pole,route,'#f1d56b',.65,.3,2.3,.11);
+ busStops.push({x,z,route,place});
+}
+makeBusStop(16,94,'6011 · 7016','광화문광장');
+makeBusStop(174,14,'143 · 401','명동');
+makeBusStop(-67,-146,'172 · 402','서울시청');
+makeBusStop(-174,-146,'273 · 7011','홍대입구');
+makeBusStop(174,174,'105 · 420','동대문');
+makeBusStop(214,-146,'150 · 151','서울역');
+
+// Signal heads at key Seoul intersections; the traffic simulation reads the same alternating phase.
+const trafficLights=[];
+function makeTrafficLight(x,z){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ for(const axis of ['vertical','horizontal']){
+  const offset=axis==='vertical'?-7:7;
+  cylinder(.09,.13,5.4,mat(0x313a40),offset,2.7,0,g);
+  box(.55,1.55,.48,mat(0x17232b),offset,4.8,0,g);
+  const red=mesh(new THREE.SphereGeometry(.16,12,10),new THREE.MeshBasicMaterial({color:0xff3c42}),offset,5.22,.25,g);
+  const amber=mesh(new THREE.SphereGeometry(.14,12,10),new THREE.MeshBasicMaterial({color:0xffcf48}),offset,4.8,.25,g);
+  const green=mesh(new THREE.SphereGeometry(.16,12,10),new THREE.MeshBasicMaterial({color:0x42ed8d}),offset,4.38,.25,g);
+  trafficLights.push({axis,red,amber,green});
+ }
+}
+for(const [x,z] of [[0,80],[80,0],[160,0],[-80,-160],[160,-160],[-160,-160],[0,160]])makeTrafficLight(x+11,z+11);
+function trafficSignalStep(now){
+ const verticalGreen=Math.floor(now/9000)%2===0;
+ for(const light of trafficLights){
+  const green=light.axis==='vertical'?verticalGreen:!verticalGreen;
+  light.red.visible=!green;light.amber.visible=false;light.green.visible=green;
+ }
+}
+
 // Cheonggyecheon stream with stone banks and bridges
 const waterMat=new THREE.MeshPhysicalMaterial({color:0x1d7082,roughness:.18,metalness:.3,clearcoat:1,clearcoatRoughness:.08});
 plane(610,15,waterMat,0,.11,-45);
@@ -674,6 +724,7 @@ for(let i=0;i<36;i++){
  const vertical=i%2===0;const road=roads[(i*3+1)%roads.length];
  const lane=road+(i%4<2?3.4:-3.4);const car=i%8===0?makeCar(0x167a9d,'bus'):i%4===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
  const v=vertical?{mesh:car,angle:i%3===0?Math.PI:0,speed:7+rand()*4,vertical:true,dir:i%3===0?-1:1}:{mesh:car,angle:i%3===0?Math.PI/2:-Math.PI/2,speed:7+rand()*4,vertical:false,dir:i%3===0?-1:1};
+ v.stopTimer=0;v.lastStopCoord=null;
  car.position.set(vertical?lane:-270+rand()*540,0,vertical?-270+rand()*540:lane);car.rotation.y=v.angle;scene.add(car);vehicles.push(v);traffic.push(v);
 }
 // scooters, parked motorbikes
@@ -907,7 +958,7 @@ function causeTrouble(){
 }
 
 // Save system
-const SAVE_KEY='seoul-crime-save-v5';
+const SAVE_KEY='seoul-crime-save-v6';
 function saveGame(){
  try{localStorage.setItem(SAVE_KEY,JSON.stringify({x:playerPos.x,z:playerPos.z,angle:playerAngle,cash,health,wanted,timeMode,currentWeather,missionState,mission}));}catch(e){}
 }
@@ -1134,10 +1185,28 @@ function npcStep(dt,time){
  }
 }
 function trafficStep(dt){
+ const now=performance.now(),verticalGreen=Math.floor(now/9000)%2===0;
  for(const v of traffic){
-  if(v.vertical)v.mesh.position.z+=v.dir*v.speed*dt;else v.mesh.position.x+=v.dir*v.speed*dt;
-  if(v.mesh.position.x>285)v.mesh.position.x=-285;if(v.mesh.position.x< -285)v.mesh.position.x=285;
-  if(v.mesh.position.z>285)v.mesh.position.z=-285;if(v.mesh.position.z< -285)v.mesh.position.z=285;
+  if(v.stopTimer>0){v.stopTimer-=dt;continue;}
+  const p=v.mesh.position,axis=v.vertical?'z':'x',along=p[axis];
+  if(v.mesh.userData.type==='bus'){
+   const candidates=busStops.filter(stop=>{
+    const aligned=v.vertical?Math.abs(stop.x-p.x)<22:Math.abs(stop.z-p.z)<22;
+    const coord=v.vertical?stop.z:stop.x;
+    return aligned&&(v.dir>0?coord>along+0.5:coord<along-0.5);
+   }).sort((a,b)=>Math.abs((v.vertical?a.z:a.x)-along)-Math.abs((v.vertical?b.z:b.x)-along));
+   if(candidates.length){
+    const stop=candidates[0],coord=v.vertical?stop.z:stop.x;
+    if(Math.abs(coord-along)<1.8&&v.lastStopCoord!==coord){v.stopTimer=2.6;v.lastStopCoord=coord;continue;}
+   }
+   if(v.lastStopCoord!==null&&Math.abs(along-v.lastStopCoord)>9)v.lastStopCoord=null;
+  }
+  const upcoming=roads.filter(c=>v.dir>0?c>along&&c-along<7:c<along&&along-c<7).sort((a,b)=>Math.abs(a-along)-Math.abs(b-along))[0];
+  const green=v.vertical?verticalGreen:!verticalGreen;
+  if(upcoming!==undefined&&!green&&Math.abs(upcoming-along)<5.3)continue;
+  if(v.vertical)p.z+=v.dir*v.speed*dt;else p.x+=v.dir*v.speed*dt;
+  if(p.x>285)p.x=-285;if(p.x< -285)p.x=285;
+  if(p.z>285)p.z=-285;if(p.z< -285)p.z=285;
  }
 }
 
@@ -1198,6 +1267,7 @@ function animate(now){
    playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);
   }
   if(missionMarker.visible)missionMarker.rotation.y+=dt*.8;if(destinationMarker.visible)destinationMarker.rotation.y-=dt*.55;
+  trafficSignalStep(now);
   if(rainPoints){const a=rainPoints.geometry.attributes.position;for(let i=0;i<a.count;i++){a.array[i*3+1]-=dt*32;if(a.array[i*3+1]<0)a.array[i*3+1]=65;}a.needsUpdate=true;rainPoints.position.x=playerPos.x;rainPoints.position.z=playerPos.z;}
   if(now-lastSave>12000){saveGame();lastSave=now;}
   updateHud();
