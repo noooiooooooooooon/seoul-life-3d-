@@ -25,7 +25,9 @@ jobs:
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
         with:
-          enablement: true
+          # Pages must be enabled once in repository Settings by the owner.
+          # The GitHub App token cannot create the Pages site on the owner's behalf.
+          enablement: false
       - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
