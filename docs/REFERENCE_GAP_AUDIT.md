@@ -14,17 +14,25 @@
 ## First gameplay correction committed
 
 - Pedestrians are now clustered around Gwanghwamun, Myeongdong, City Hall, Dongdaemun, Hongdae, Bukchon, and Cheonggyecheon instead of being uniformly scattered.
-- Ambient traffic increased from 14 to 24 vehicles, with more buses and taxis represented.
+- Ambient traffic increased from 14 to 36 vehicles, with more buses and taxis represented.
 - Players can enter parked and moving traffic vehicles; taking one now raises the wanted level.
-- J / G and the mobile action button now attempt a nearby pedestrian melee attack. A successful hit causes panic and raises wanted level; the button no longer grants a star from a distance.
+- J / G and the mobile action button attempt a nearby pedestrian melee attack. A successful hit causes panic and raises wanted level; repeat hits can knock a pedestrian out, followed by respawn. Vehicle impacts also alert police.
 - Walking and sprint speed increased; the local save key was versioned so old saved wanted levels do not carry into the new build.
+
+## Additional implemented systems
+
+- Six walkable underground station scenes, each with a platform, tracks, tiled floor, station signs, pillars and a three-car Seoul metro train model.
+- Subway entry from nearby surface entrances, an in-game station selector, timed travel between the prototype stations, and an exit back to the surface.
+- Six Korean bus-stop shelters with route boards and benches; bus traffic pauses at aligned stops.
+- Seven signalized intersections with alternating signal phases; traffic waits at red lights.
+- Surface subway entrances upgraded with exit signs and stair geometry.
 
 ## Next production milestones
 
 1. Replace the grid with a geographically grounded, compact Seoul district (start with Gwanghwamun–Jongno–Myeongdong), using open/licensed road and building-footprint data plus custom landmark assets.
 2. Build recognizable Korean storefronts, apartment blocks, officetels, signs, bus stops, traffic lights, lane arrows, crosswalks, tactile paving, alleys, hills, and street furniture.
-3. Implement road-aware pedestrian and vehicle navigation, timed signal control, proper bus/taxi routes and stops, passenger interactions, and traffic collisions.
-4. Build an actual subway loop: entrance stairs, fare gate, underground concourse, platforms, train model, station announcements/doors, and selectable destinations.
+3. Replace the lightweight bus stop behavior with road-aware pedestrian and vehicle navigation, proper bus/taxi routes, passenger boarding, and richer traffic collision responses.
+4. Expand the subway prototype with animated trains, doors, station announcements, fare gates, escalators, and a route network mapped to actual Seoul station geography.
 5. Build the crime loop: vehicle theft, melee assault, witnesses/cameras, escalating dispatch, police search and pursuit, arrest, fines, and wanted-level cooldown.
 6. Upgrade character/vehicle assets and animation rigs; optimize shadows, draw calls, and input for Android devices.
 
