@@ -88,7 +88,7 @@ h1 span{color:var(--lime)}
  .topRight{gap:4px}.cashPill,.clockPill,.wanted{padding:5px 7px;border-radius:9px}.cashPill small,.clockPill small,.wanted small{font-size:7px}.cashPill strong{font-size:13px}.clockPill strong{font-size:13px}#stars{font-size:15px;letter-spacing:1px}
  #objective{top:53px;min-width:0;width:min(82vw,360px);max-width:82vw;padding:6px 9px}#objective small{font-size:8px}#objective strong{font-size:10px}
  #locationTag{display:none}#mapButton{top:105px;right:10px;padding:7px 9px;font-size:9px}
- #miniMap{right:10px;bottom:172px;width:100px;height:100px}
+ #miniMap{right:10px;top:145px;bottom:auto;width:92px;height:92px}
  #mapLabel{font-size:7px}#bottomHint{display:none}#vehicleHud{right:10px;bottom:165px;min-width:90px;padding:6px 9px}#vehicleHud strong{font-size:24px}
  #toast{top:145px;font-size:10px}
  .startCard{padding:22px 17px}.startSub{font-size:11px}.startFacts{gap:5px;margin:15px 0}.fact{padding:8px 7px}.fact b{font-size:9px}.fact small{font-size:8px}.startActions{flex-direction:column}.secondaryBtn,.startBtn{padding:12px}
@@ -373,7 +373,7 @@ for(let ix=0;ix<roads.length-1;ix++)for(let iz=0;iz<roads.length-1;iz++){
  const hanokZone=cx<-125&&cz>95&&cz<220;
  // river banks and open plazas
  if(Math.abs(cz+45)<18)continue;
- const count=hanokZone?0:2+(Math.floor(rand()*3));
+ const count=hanokZone?0:2+(Math.floor(rand()*2));
  if(count){
   for(let n=0;n<count;n++){
    const x=left+13+rand()*(right-left-26);
@@ -388,7 +388,7 @@ for(let ix=0;ix<roads.length-1;ix++)for(let iz=0;iz<roads.length-1;iz++){
  }
 }
 // extra dense central blocks and rooftop silhouettes
-for(let i=0;i<24;i++){
+for(let i=0;i<14;i++){
  const x=90+rand()*100,z=-10+rand()*90;
  building(x,z,7+rand()*7,8+rand()*8,22+rand()*45,rand()>.5?'shop':'office',i+300);
 }
@@ -407,7 +407,7 @@ function bench(x,z,rot=0){
  box(2,.16,.55,mat(0x70523a),0,.55,0,g);box(2,.75,.12,mat(0x70523a),0,.94,-.22,g);
  for(const px of [-.75,.75]){box(.12,.52,.15,darkMetal,px,.26,0,g);box(.12,.12,.8,darkMetal,px,.08,0,g);}
 }
-for(let x=-280;x<=280;x+=28){for(const z of [-25,-65,12,68,104,230,-230])if(Math.abs(z+45)>18)tree(x,z,.8+rand()*.4);}
+for(let x=-280;x<=280;x+=36){for(const z of [-25,-65,12,68,104,230,-230])if(Math.abs(z+45)>18)tree(x,z,.8+rand()*.4);}
 for(let i=0;i<24;i++){const x=-220+rand()*440,z=-260+rand()*520;if(Math.abs(z+45)>18)bench(x,z,rand()*Math.PI*2);}
 
 // Traditional Bukchon quarter
@@ -474,7 +474,7 @@ function streetLamp(x,z,rot=0){
  const head=box(.65,.18,1.1,lampGlow,0,5.95,-1.45,g);
  if(rand()>.78){const glow=new THREE.PointLight(0xffd49a,.24,12);glow.position.set(0,5.6,-1.5);g.add(glow);}
 }
-for(const v of roads)for(let p=-220;p<=220;p+=80){streetLamp(v+12,p,0);streetLamp(p,v-12,Math.PI/2);}
+for(const v of roads)for(let p=-180;p<=180;p+=120){streetLamp(v+12,p,0);streetLamp(p,v-12,Math.PI/2);}
 const signalHeads=[];
 function trafficSignal(x,z,rot=0){
  const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
@@ -580,7 +580,7 @@ const parkedSpecs=[
  [150,80,0xd8dfe0,'sedan'],[-115,72,0x282e35,'sedan']
 ];
 for(const s of parkedSpecs){const v=makeCar(s[2],s[3]);v.position.set(s[0],0,s[1]);scene.add(v);const data={mesh:v,angle:0,speed:0,parked:true,type:s[3]};vehicles.push(data);parked.push(data);}
-for(let i=0;i<20;i++){
+for(let i=0;i<14;i++){
  const vertical=i%2===0;const road=roads[(i*3+1)%roads.length];
  const lane=road+(i%4<2?3.4:-3.4);const car=i%9===0?makeCar(0x2681ad,'bus'):i%5===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
  const v=vertical?{mesh:car,angle:i%3===0?Math.PI:0,speed:7+rand()*4,vertical:true,dir:i%3===0?-1:1}:{mesh:car,angle:i%3===0?Math.PI/2:-Math.PI/2,speed:7+rand()*4,vertical:false,dir:i%3===0?-1:1};
@@ -623,7 +623,7 @@ camera.position.set(34,18,139);camera.lookAt(0,8,176);
 let playerPos=player.group.position,playerAngle=Math.PI;
 const npcs=[];
 const clothing=[0x658c8c,0x8b5c7d,0x456b9a,0xb28a55,0x778b78,0xb0a8a0,0x7d5962,0x3f6577,0xc1a16e,0x4b5365];
-for(let i=0;i<48;i++){
+for(let i=0;i<32;i++){
  const x=-250+rand()*500,z=-250+rand()*500;
  if(Math.abs(z+45)<20||Math.abs(x)<20&&z>115&&z<210)continue;
  const model=person(clothing[i%clothing.length],'civilian',i);
@@ -839,6 +839,7 @@ $('phoneInfo').textContent='서울에서 자유롭게 이동하고 다양한 일
 const keys={};
 addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;
+ if(k===' ')jumpRequested=true;
  if(!gameStarted||e.repeat)return;
  if(k==='e')toggleCar();if(k==='f')interact();if(k==='j')causeTrouble();
  if(k==='m')openOverlay('mapModal');if(k==='p')openOverlay('phoneModal');
