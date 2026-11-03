@@ -411,10 +411,10 @@ for(let x=-280;x<=280;x+=28){for(const z of [-25,-65,12,68,104,230,-230])if(Math
 for(let i=0;i<24;i++){const x=-220+rand()*440,z=-260+rand()*520;if(Math.abs(z+45)>18)bench(x,z,rand()*Math.PI*2);}
 
 // Traditional Bukchon quarter
+const hanokWallMat=new THREE.MeshStandardMaterial({map:makeHanokWall(),roughness:.95});
 function hanok(x,z,scale=1){
  const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);
- const wallMat=new THREE.MeshStandardMaterial({map:makeHanokWall(),roughness:.95});
- box(9,2.8,7,wallMat,0,1.45,0,g);
+ box(9,2.8,7,hanokWallMat,0,1.45,0,g);
  box(9.5,.24,7.5,mat(0x45362f),0,2.9,0,g);
  // tiled roof in layered sloping wings
  const roofMat=mat(0x293d38,.88),eave=mat(0x40594d,.78);
@@ -472,7 +472,7 @@ function streetLamp(x,z,rot=0){
  cylinder(.12,.2,6.3,lampMat,0,3.15,0,g);
  const arm=box(.15,.15,1.8,lampMat,0,6.1,-.75,g);arm.rotation.x=-.08;
  const head=box(.65,.18,1.1,lampGlow,0,5.95,-1.45,g);
- const glow=new THREE.PointLight(0xffd49a,.35,15);glow.position.set(0,5.6,-1.5);g.add(glow);
+ if(rand()>.78){const glow=new THREE.PointLight(0xffd49a,.24,12);glow.position.set(0,5.6,-1.5);g.add(glow);}
 }
 for(const v of roads)for(let p=-220;p<=220;p+=80){streetLamp(v+12,p,0);streetLamp(p,v-12,Math.PI/2);}
 const signalHeads=[];
@@ -555,7 +555,6 @@ function makeCar(color=0xe8e9e6,type='sedan'){
  for(const x of [-width*.53,width*.53])for(const z of [-length*.32,length*.32]){
   const w=mesh(new THREE.CylinderGeometry(.42,.42,.27,20),tireMat,x,.43,z,g);w.rotation.z=Math.PI/2;wheels.push(w);
   const hub=mesh(new THREE.CylinderGeometry(.2,.2,.29,16),rimMat,x,.43,z,g);hub.rotation.z=Math.PI/2;
-  for(let a=0;a<5;a++){const spoke=box(.06,.32,.03,mat(0xe3e8e7,.3,.7),x+(x>0?.15:-.15),.43,z,g);spoke.rotation.y=a*Math.PI/5;spoke.rotation.z=Math.PI/2;}
  }
  if(type==='taxi'){
   box(.75,.2,.45,mat(0x1a2329),0,2.13,0,g);addSign(g,'TAXI','#ffe45d',.62,.25,2.28,.24);
@@ -620,6 +619,7 @@ function person(shirtColor=0x4c7893,kind='civilian',variant=0){
 }
 const player=person(0x2671a0,'player',2);
 player.group.position.set(9,0,104);scene.add(player.group);
+camera.position.set(34,18,139);camera.lookAt(0,8,176);
 let playerPos=player.group.position,playerAngle=Math.PI;
 const npcs=[];
 const clothing=[0x658c8c,0x8b5c7d,0x456b9a,0xb28a55,0x778b78,0xb0a8a0,0x7d5962,0x3f6577,0xc1a16e,0x4b5365];
@@ -723,7 +723,7 @@ function acceptJob(type){
 }
 function interact(){
  if(inCar){toggleCar();return;}
- const d=Math.hypot(playerPos.x-(navTarget?navTarget.x:missionMarker.position.x),playerPos.z-(navTarget?navTarget.z:missionMarker.position.z));
+ const d=mission?Math.hypot(playerPos.x-mission.end.x,playerPos.z-mission.end.z):Infinity;
  if(mission&&missionState===1&&d<12){
   cash+=mission.reward;missionState=2;missionMarker.visible=false;destinationMarker.visible=false;
   navTarget=null;$('missionText').textContent='임무 완료 · ₩'+mission.reward.toLocaleString('ko-KR')+' 보상 획득';
@@ -850,7 +850,7 @@ let drag=false,lastX=0,lastY=0,cameraYaw=0;
 renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;});
 addEventListener('pointerup',()=>drag=false);
 addEventListener('pointercancel',()=>drag=false);
-addEventListener('pointermove',e=>{if(drag&&gameStarted&&!inCar&&innerWidth>760){cameraYaw+=(e.clientX-lastX)*.004;lastX=e.clientX;lastY=e.clientY;}});
+addEventListener('pointermove',e=>{if(drag&&gameStarted&&!inCar){cameraYaw+=(e.clientX-lastX)*.004;lastX=e.clientX;lastY=e.clientY;}});
 function bindHold(id,key){
  const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});
  ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>keys[key]=false));
@@ -908,9 +908,9 @@ function npcStep(dt,time){
   const distance=to.length();
   if(wanted>0&&p.distanceTo(playerPos)<14)n.panic=3;
   n.panic=Math.max(0,n.panic-dt);
-  if(distance<2||n.panic>0){
-   if(n.panic<=0)n.target.set(THREE.MathUtils.clamp(p.x+(rand()-.5)*36,-270,270),0,THREE.MathUtils.clamp(p.z+(rand()-.5)*36,-270,270));
-  }else{
+  if(n.panic>0){const flee=p.clone().sub(playerPos);if(flee.lengthSq()<.01)flee.set(1,0,0);flee.normalize();p.addScaledVector(flee,n.speed*2.8*dt);n.model.group.rotation.y=Math.atan2(flee.x,flee.z);}
+  else if(distance<2){n.target.set(THREE.MathUtils.clamp(p.x+(rand()-.5)*36,-270,270),0,THREE.MathUtils.clamp(p.z+(rand()-.5)*36,-270,270));}
+  else{
    const dir=to.normalize();p.addScaledVector(dir,n.speed*dt);n.model.group.rotation.y=Math.atan2(dir.x,dir.z);
    const swing=Math.sin(time*.006+n.phase)*.42;n.model.leftLeg.rotation.x=swing;n.model.rightLeg.rotation.x=-swing;
    n.model.leftArm.rotation.x=-swing*.5;n.model.rightArm.rotation.x=swing*.5;
