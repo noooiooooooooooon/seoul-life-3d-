@@ -146,7 +146,7 @@ h1 span{color:var(--lime)}
   <button id="moveUp">▲</button><button id="moveLeft">◀</button><button id="moveDown">▼</button><button id="moveRight">▶</button>
  </div>
  <div id="mobileActions">
-  <button id="mobileRun">달리기</button><button id="mobileJump">점프</button><button id="mobileEnter">차량 E</button><button id="mobileInteract">미션 F</button><button class="primary" id="mobileCrime">소란 +1★</button><button class="mapMini" id="mobilePhone">휴대폰</button>
+  <button id="mobileRun">달리기</button><button id="mobileJump">점프</button><button id="mobileEnter">차량 E</button><button id="mobileInteract">미션 F</button><button class="primary" id="mobileCrime">시민 공격</button><button class="mapMini" id="mobilePhone">휴대폰</button>
  </div>
 </div>
 <div id="overlay">
@@ -629,9 +629,9 @@ const parkedSpecs=[
  [150,80,0xd8dfe0,'sedan'],[-115,72,0x282e35,'sedan']
 ];
 for(const s of parkedSpecs){const v=makeCar(s[2],s[3]);v.position.set(s[0],0,s[1]);scene.add(v);const data={mesh:v,angle:0,speed:0,parked:true,type:s[3]};vehicles.push(data);parked.push(data);}
-for(let i=0;i<14;i++){
+for(let i=0;i<24;i++){
  const vertical=i%2===0;const road=roads[(i*3+1)%roads.length];
- const lane=road+(i%4<2?3.4:-3.4);const car=i%9===0?makeCar(0x2681ad,'bus'):i%5===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
+ const lane=road+(i%4<2?3.4:-3.4);const car=i%8===0?makeCar(0x167a9d,'bus'):i%4===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
  const v=vertical?{mesh:car,angle:i%3===0?Math.PI:0,speed:7+rand()*4,vertical:true,dir:i%3===0?-1:1}:{mesh:car,angle:i%3===0?Math.PI/2:-Math.PI/2,speed:7+rand()*4,vertical:false,dir:i%3===0?-1:1};
  car.position.set(vertical?lane:-270+rand()*540,0,vertical?-270+rand()*540:lane);car.rotation.y=v.angle;scene.add(car);vehicles.push(v);traffic.push(v);
 }
@@ -672,12 +672,25 @@ camera.position.set(34,18,139);camera.lookAt(0,8,176);
 let playerPos=player.group.position,playerAngle=Math.PI;
 const npcs=[];
 const clothing=[0x658c8c,0x8b5c7d,0x456b9a,0xb28a55,0x778b78,0xb0a8a0,0x7d5962,0x3f6577,0xc1a16e,0x4b5365];
-for(let i=0;i<32;i++){
- const x=-250+rand()*500,z=-250+rand()*500;
- if(Math.abs(z+45)<20||Math.abs(x)<20&&z>115&&z<210)continue;
- const model=person(clothing[i%clothing.length],'civilian',i);
- model.group.position.set(x,0,z);scene.add(model.group);
- npcs.push({model,target:new THREE.Vector3(x+(rand()-.5)*30,0,z+(rand()-.5)*30),speed:.65+rand()*.55,phase:rand()*8,panic:0});
+// Cluster pedestrians around Seoul activity hubs rather than scattering them uniformly.
+const pedestrianZones=[
+ {x:9,z:104,count:16,spread:22},{x:0,z:125,count:9,spread:24},
+ {x:165,z:14,count:12,spread:27},{x:-80,z:-176,count:9,spread:24},
+ {x:190,z:157,count:8,spread:25},{x:-180,z:-190,count:8,spread:25},
+ {x:-180,z:165,count:7,spread:22},{x:0,z:-45,count:8,spread:24}
+];
+let pedestrianId=0;
+for(const zone of pedestrianZones){
+ for(let j=0;j<zone.count;j++){
+  let x=zone.x+(rand()-.5)*zone.spread*2;
+  let z=zone.z+(rand()-.5)*zone.spread*2;
+  if(Math.abs(z+45)<9)z+=z<-45?-12:12;
+  const model=person(clothing[pedestrianId%clothing.length],'civilian',pedestrianId);
+  model.group.position.set(x,0,z);scene.add(model.group);
+  model.group.traverse(o=>{if(o.isMesh){o.castShadow=false;o.receiveShadow=false;}});
+  npcs.push({model,target:new THREE.Vector3(x+(rand()-.5)*24,0,z+(rand()-.5)*24),speed:1.05+rand()*.55,phase:rand()*8,panic:0,hp:100,recoverAt:0,lastImpact:0});
+  pedestrianId++;
+ }
 }
 
 // Missions and points of interest
@@ -791,16 +804,20 @@ function toggleCar(){
   playerPos=player.group.position;playerAngle=v.angle;v.speed*=.2;inCar=null;
   $('vehicleHud').style.display='none';toast('차량에서 내렸습니다');return;
  }
- let nearest=null,dist=6;
- for(const v of parked){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
+ let nearest=null,dist=7;
+ for(const v of vehicles){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
  for(const s of scooters){const d=s.position.distanceTo(playerPos);if(d<dist){dist=d;nearest={mesh:s,angle:s.rotation.y,speed:0,parked:true,type:'scooter',isScooter:true};}}
- if(nearest){inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;$('vehicleHud').style.display='block';toast(nearest.isScooter?'스쿠터에 탑승했습니다':'차량에 탑승했습니다');}
- else {
-  for(const s of stationsData){if(Math.hypot(playerPos.x-s.x,playerPos.z-s.z)<8){
-   const destinations=stationsData.filter(v=>v.name!==s.name);
-   const target=destinations[Math.floor(rand()*destinations.length)];
-   if(inCar){toggleCar();return;}
-   playerPos.set(target.x+5,0,target.z+5);player.group.position.copy(playerPos);toast(target.name+'역으로 이동했습니다');return;
+ if(nearest){
+  const movingIndex=traffic.indexOf(nearest);if(movingIndex>=0)traffic.splice(movingIndex,1);
+  inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;$('vehicleHud').style.display='block';
+  raiseWanted();
+  toast(nearest.isScooter?'스쿠터 절도 신고 접수 · 수배 1단계':'차량 절도 신고 접수 · 수배 레벨 상승');
+ }else{
+  for(const station of stationsData){if(Math.hypot(playerPos.x-station.x,playerPos.z-station.z)<8){
+   const destinations=stationsData.filter(v=>v.name!==station.name);
+   const target=destinations[stationsData.indexOf(station)%destinations.length];
+   playerPos.set(target.x+5,0,target.z+5);player.group.position.copy(playerPos);
+   toast('지하철 이동: '+station.name+' → '+target.name+' · 역 선택 기능은 다음 업데이트에서 제공됩니다');return;
   }}
   toast('가까운 차량이나 지하철역이 없습니다');
  }
@@ -809,10 +826,21 @@ function raiseWanted(){
  wanted=Math.min(6,wanted+1);escapeTimer=0;arrestTimer=0;
  toast('경찰 수배 '+wanted+'단계 · '+ '★'.repeat(wanted));
 }
-function causeTrouble(){if(performance.now()-(causeTrouble.last||0)<1600)return;causeTrouble.last=performance.now();raiseWanted();}
+function causeTrouble(){
+ const now=performance.now();if(now-(causeTrouble.last||0)<1100)return;causeTrouble.last=now;
+ if(inCar){toast('차량에서 내린 뒤 시민에게 다가가세요');return;}
+ let target=null,dist=4.4;
+ for(const n of npcs){if(!n.model.group.visible)continue;const d=n.model.group.position.distanceTo(playerPos);if(d<dist){dist=d;target=n;}}
+ if(!target){toast('공격할 시민이 가까이에 없습니다. 시민 옆으로 이동하세요.');return;}
+ const p=target.model.group.position;let away=p.clone().sub(playerPos);if(away.lengthSq()<.01)away.set(1,0,0);away.normalize();
+ target.hp=Math.max(0,(target.hp??100)-35);target.panic=8;target.target.copy(p).addScaledVector(away,26);p.addScaledVector(away,1.2);
+ target.model.group.rotation.y=Math.atan2(away.x,away.z);
+ raiseWanted();
+ toast('시민 폭행 신고 접수 · 목격자들이 경찰에 신고했습니다');
+}
 
 // Save system
-const SAVE_KEY='seoul-crime-save-v2';
+const SAVE_KEY='seoul-crime-save-v3';
 function saveGame(){
  try{localStorage.setItem(SAVE_KEY,JSON.stringify({x:playerPos.x,z:playerPos.z,angle:playerAngle,cash,health,wanted,timeMode,currentWeather,missionState,mission}));}catch(e){}
 }
@@ -903,7 +931,7 @@ addEventListener('keydown',e=>{
  const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;
  if(k===' ')jumpRequested=true;
  if(!gameStarted||e.repeat)return;
- if(k==='e')toggleCar();if(k==='f')interact();if(k==='j')causeTrouble();
+ if(k==='e')toggleCar();if(k==='f')interact();if(k==='j'||k==='g')causeTrouble();
  if(k==='m')openOverlay('mapModal');if(k==='p')openOverlay('phoneModal');
  if(k==='q')setWeather(currentWeather+1);if(k==='t')setTimeMode(timeMode+1);
  if(k==='escape'){if($('overlay').style.display==='flex')closeOverlay();else{paused=!paused;toast(paused?'일시정지':'게임 재개');}}
@@ -977,7 +1005,7 @@ function playerStep(dt){
   playerAngle+=turn*dt*2.7;
   if(jumpRequested&&player.group.position.y<=.03)playerVertical=7.4;
   jumpRequested=false;playerVertical-=19*dt;player.group.position.y=Math.max(0,player.group.position.y+playerVertical*dt);if(player.group.position.y===0)playerVertical=0;
-  const speed=keys.shift?9.2:5.2;
+  const speed=keys.shift?11.5:6.6;
   const dir=new THREE.Vector3(Math.sin(playerAngle+cameraYaw),0,Math.cos(playerAngle+cameraYaw));
   const next=playerPos.clone().addScaledVector(dir,forward*speed*dt);resolveBuildings(next,.65);player.group.position.x=next.x;player.group.position.z=next.z;playerPos=player.group.position;player.group.rotation.y=playerAngle+cameraYaw;
   const swing=Math.sin(performance.now()*.012)*.55*Math.abs(forward);
