@@ -487,7 +487,7 @@ for(const x of [-16,0,16]){
  box(2.3,7.5,2.6,stone,x,4,0,palace);
  box(2.8,.55,3.2,wood,x,7.7,0,palace);
  box(9,.38,4.8,wood,x,8.2,0,palace);
- for(const j=-2;j<=2;j++){box(.23,.8,.24,gold,x+j*1.4,8.75,0,palace);}
+ for(let j=-2;j<=2;j++){box(.23,.8,.24,gold,x+j*1.4,8.75,0,palace);}
 }
 box(43,1.1,5,wood,0,9,0,palace);
 const mainRoof=mesh(new THREE.ConeGeometry(24,4.3,4),roofTile,0,11.6,0,palace);mainRoof.rotation.y=Math.PI/4;mainRoof.scale.z=.55;
