@@ -556,12 +556,18 @@ busStop(-38,17,'7016 버스');
 busStop(125,-104,'간선 버스');
 function metroEntrance(x,z,label){
  const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
- box(6,.45,4,mat(0x66777b),0,.22,0,g);
- for(const side of [-1,1])box(5,.22,.35,mat(0x263e48),0,.63,side*1.7,g);
- box(3.7,.18,2.2,mat(0x1a3444),0,.8,-.35,g);
- addSign(g,'지하철 '+label,'#49d2db',4,.7,1.4,1.1);
- for(let i=0;i<6;i++)box(.55,.08,2.4,mat(0x889497),-1.4+i*.55,.9,-.5,g);
- return {x,z,label};
+ box(7,.42,5,mat(0x68797d),0,.22,0,g);
+ box(6.8,.2,4.8,mat(0x263e48),0,3.15,0,g);
+ for(const side of [-1,1]){
+  box(.18,3.1,.18,mat(0x526b76),side*3.1,1.6,0,g);
+  box(.16,1.25,3.2,mat(0x257f9c),side*2.2,.8,-.1,g);
+ }
+ box(4.2,.18,2.6,mat(0x1a3444),0,.8,-.35,g);
+ addSign(g,'지하철 '+label,'#49d2db',4.2,.75,2.6,1.2);
+ addSign(g,'출구 · EXIT','#f1cc63',2.1,.4,2.0,2.85);
+ for(let i=0;i<8;i++)box(3.1,.12,.48,mat(0x9aa5a6),0,.16+i*.12,-1.65-i*.42,g);
+ for(const side of [-1,1])box(.13,1.1,3.3,mat(0x287e98),side*1.8,.75,-2.9,g);
+ return {x,z,label,group:g};
 }
 const stations=[
  metroEntrance(-80,-160,'시청'),metroEntrance(0,0,'종로3가'),
@@ -892,14 +898,16 @@ function causeTrouble(){
  for(const n of npcs){if(!n.model.group.visible)continue;const d=n.model.group.position.distanceTo(playerPos);if(d<dist){dist=d;target=n;}}
  if(!target){toast('공격할 시민이 가까이에 없습니다. 시민 옆으로 이동하세요.');return;}
  const p=target.model.group.position;let away=p.clone().sub(playerPos);if(away.lengthSq()<.01)away.set(1,0,0);away.normalize();
+ attackAnimUntil=performance.now()+430;
  target.hp=Math.max(0,(target.hp??100)-35);target.panic=8;target.target.copy(p).addScaledVector(away,26);p.addScaledVector(away,1.2);
  target.model.group.rotation.y=Math.atan2(away.x,away.z);
+ if(target.hp<=0){target.recoverAt=performance.now()+14000;target.model.group.visible=false;}
  raiseWanted();
  toast('시민 폭행 신고 접수 · 목격자들이 경찰에 신고했습니다');
 }
 
 // Save system
-const SAVE_KEY='seoul-crime-save-v4';
+const SAVE_KEY='seoul-crime-save-v5';
 function saveGame(){
  try{localStorage.setItem(SAVE_KEY,JSON.stringify({x:playerPos.x,z:playerPos.z,angle:playerAngle,cash,health,wanted,timeMode,currentWeather,missionState,mission}));}catch(e){}
 }
@@ -1044,7 +1052,7 @@ $('fullMap').addEventListener('click',e=>{
  const wx=(x-320)/1.03,wz=(320-z)/1.03;
  const p=pois.reduce((a,b)=>Math.hypot(a.x-wx,a.z-wz)<Math.hypot(b.x-wx,b.z-wz)?a:b,pois[0]);setDestination(p);
 });
-let jumpRequested=false;
+let jumpRequested=false,attackAnimUntil=0;
 
 // Player and vehicle simulation
 function resolveBuildings(pos,radius){
@@ -1065,11 +1073,20 @@ function playerStep(dt){
   v.angle+=turn*dt*(1.35+Math.abs(v.speed)*.035)*Math.sign(v.speed||1);
   v.mesh.rotation.y=v.angle;const next=v.mesh.position.clone();next.x+=Math.sin(v.angle)*v.speed*dt;next.z+=Math.cos(v.angle)*v.speed*dt;
   resolveBuildings(next,2);v.mesh.position.copy(next);playerPos=v.mesh.position;
+  if(Math.abs(v.speed)>4){
+   const now=performance.now();
+   for(const n of npcs){if(n.hp<=0||!n.model.group.visible)continue;
+    if(n.model.group.position.distanceTo(playerPos)<2.3&&now-(n.lastImpact||0)>2600){
+     n.lastImpact=now;n.hp=Math.max(0,(n.hp??100)-100);n.panic=8;
+     if(n.hp<=0){n.recoverAt=now+14000;n.model.group.visible=false;}
+     raiseWanted();toast('차량 충돌 신고 접수 · 경찰 수배 상승');
+    }
+   }
+  }
   for(const w of (v.mesh.userData.wheels||[]))w.rotation.x+=v.speed*dt*1.8;
   $('speed').textContent=Math.round(Math.abs(v.speed)*3.6);
  }else{
   playerAngle+=turn*dt*2.7;
-  if(jumpRequested&&player.group.position.y<=.03)playerVertical=7.4;
   const floorY=subwayMode?-20:0;
   if(jumpRequested&&player.group.position.y<=floorY+.03)playerVertical=7.4;
   jumpRequested=false;playerVertical-=19*dt;player.group.position.y=Math.max(floorY,player.group.position.y+playerVertical*dt);if(player.group.position.y===floorY)playerVertical=0;
@@ -1080,22 +1097,40 @@ function playerStep(dt){
   else resolveBuildings(next,.65);
   player.group.position.x=next.x;player.group.position.z=next.z;playerPos=player.group.position;player.group.rotation.y=playerAngle+cameraYaw;
   const swing=Math.sin(performance.now()*.012)*.55*Math.abs(forward);
-  player.leftLeg.rotation.x=swing;player.rightLeg.rotation.x=-swing;player.leftArm.rotation.x=-swing*.6;player.rightArm.rotation.x=swing*.6;
+  player.leftLeg.rotation.x=swing;player.rightLeg.rotation.x=-swing;player.leftArm.rotation.x=-swing*.6;player.rightArm.rotation.x=performance.now()<attackAnimUntil?-1.55:swing*.6;
  }
 }
 function npcStep(dt,time){
+ if(subwayMode)return;
  for(const n of npcs){
-  const p=n.model.group.position;const to=n.target.clone().sub(p);
-  const distance=to.length();
-  if(wanted>0&&p.distanceTo(playerPos)<14)n.panic=3;
-  n.panic=Math.max(0,n.panic-dt);
-  if(n.panic>0){const flee=p.clone().sub(playerPos);if(flee.lengthSq()<.01)flee.set(1,0,0);flee.normalize();p.addScaledVector(flee,n.speed*2.8*dt);n.model.group.rotation.y=Math.atan2(flee.x,flee.z);}
-  else if(distance<2){n.target.set(THREE.MathUtils.clamp(p.x+(rand()-.5)*36,-270,270),0,THREE.MathUtils.clamp(p.z+(rand()-.5)*36,-270,270));}
-  else{
-   const dir=to.normalize();p.addScaledVector(dir,n.speed*dt);n.model.group.rotation.y=Math.atan2(dir.x,dir.z);
-   const swing=Math.sin(time*.006+n.phase)*.42;n.model.leftLeg.rotation.x=swing;n.model.rightLeg.rotation.x=-swing;
-   n.model.leftArm.rotation.x=-swing*.5;n.model.rightArm.rotation.x=swing*.5;
+  const p=n.model.group.position;
+  if(n.hp<=0){
+   n.model.group.visible=false;
+   if(n.recoverAt&&time>=n.recoverAt){
+    n.hp=100;n.recoverAt=0;n.panic=0;
+    const zone=pedestrianZones[Math.floor(rand()*pedestrianZones.length)];
+    p.set(zone.x+(rand()-.5)*zone.spread,0,zone.z+(rand()-.5)*zone.spread);
+    n.target.copy(p).add(new THREE.Vector3((rand()-.5)*18,0,(rand()-.5)*18));
+    n.model.group.visible=true;
+   }
+   continue;
   }
+  const to=n.target.clone().sub(p),distance=to.length();
+  if(wanted>0&&p.distanceTo(playerPos)<18)n.panic=Math.max(n.panic,3);
+  n.panic=Math.max(0,n.panic-dt);
+  let dir;
+  if(n.panic>0){
+   dir=p.clone().sub(playerPos);if(dir.lengthSq()<.01)dir.set(1,0,0);dir.normalize();
+   p.addScaledVector(dir,n.speed*3.1*dt);
+  }else{
+   if(distance<2){n.target.set(THREE.MathUtils.clamp(p.x+(rand()-.5)*28,-270,270),0,THREE.MathUtils.clamp(p.z+(rand()-.5)*28,-270,270));}
+   else{dir=to.normalize();p.addScaledVector(dir,n.speed*dt);}
+  }
+  if(dir){n.model.group.rotation.y=Math.atan2(dir.x,dir.z);const swing=Math.sin(time*.012+n.phase)*.46;
+   n.model.leftLeg.rotation.x=swing;n.model.rightLeg.rotation.x=-swing;
+   n.model.leftArm.rotation.x=-swing*.55;n.model.rightArm.rotation.x=swing*.55;
+  }
+  resolveBuildings(p,.42);
  }
 }
 function trafficStep(dt){
