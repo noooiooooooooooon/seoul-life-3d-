@@ -1,180 +1,987 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <meta name="theme-color" content="#090d16" />
-  <title>SEOUL CRIME — 3D Open World</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-    :root{--lime:#c7ff4a;--cyan:#42d9ff;--red:#ff4d5e;--panel:rgba(8,13,23,.82);--line:rgba(255,255,255,.15)}
-    *{box-sizing:border-box} html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090d16;color:#fff;font-family:'Noto Sans KR',sans-serif} canvas{display:block}
-    #game{position:fixed;inset:0}
-    #hud{position:fixed;inset:0;pointer-events:none;display:none}
-    .panel{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px);border-radius:13px;box-shadow:0 12px 35px #0005}
-    #brand{position:absolute;left:22px;top:18px;padding:10px 14px;display:flex;align-items:center;gap:10px}
-    #brandMark{width:30px;height:30px;border-radius:8px;background:var(--lime);color:#111;display:grid;place-items:center;font-weight:900}
-    #brand strong{font-family:'Black Han Sans',sans-serif;letter-spacing:1px;font-size:17px}#brand small{display:block;color:#9eabba;font-size:9px;letter-spacing:2px}
-    #wanted{position:absolute;right:22px;top:20px;padding:10px 15px;text-align:right;min-width:170px}
-    #wantedLabel{font-size:10px;color:#a6b1c1;letter-spacing:1.5px;font-weight:700}#stars{font-size:26px;letter-spacing:3px;color:#586171;margin-top:2px;text-shadow:0 2px 12px #000}#stars .on{color:#ffd34e;text-shadow:0 0 10px #ffb72e}
-    #status{position:absolute;left:22px;bottom:22px;width:245px;padding:13px 15px}
-    .statrow{display:flex;justify-content:space-between;font-size:11px;color:#b9c4d3;margin-bottom:6px}.bar{height:7px;border-radius:9px;background:#26303e;overflow:hidden;margin-bottom:10px}.bar>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#8be34a,#d5ff5b);border-radius:9px;transition:width .2s}
-    #cash{font-size:20px;font-weight:900;color:var(--lime);font-variant-numeric:tabular-nums}
-    #mission{position:absolute;left:50%;top:22px;transform:translateX(-50%);padding:10px 16px;min-width:220px;text-align:center}
-    #mission .eyebrow{font-size:9px;letter-spacing:2px;color:var(--lime);font-weight:900}#missionText{font-size:12px;font-weight:700;margin-top:3px}
-    #hint{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);padding:9px 14px;font-size:11px;color:#dce6f3;white-space:nowrap}
-    #minimap{position:absolute;right:22px;bottom:22px;width:156px;height:156px;border-radius:14px;overflow:hidden;border:1px solid #ffffff35;background:#091321cc;box-shadow:0 10px 25px #0007}
-    #mapCanvas{width:100%;height:100%}#mapCaption{position:absolute;left:10px;top:8px;font-size:8px;letter-spacing:1.6px;color:#ffffffa0}
-    #toast{position:absolute;top:85px;left:50%;transform:translateX(-50%);padding:10px 16px;border:1px solid #c7ff4a55;border-radius:10px;background:#101b13ed;color:#dfffaa;font-size:12px;font-weight:700;opacity:0;transition:opacity .25s}
-    #crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#fff9;box-shadow:0 0 5px #000;transform:translate(-50%,-50%)}
-    #start{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(110deg,#080d17ee,#101b2be0),radial-gradient(circle at 70% 40%,#1e4360,#090d16 65%)}
-    #start:before{content:'';position:absolute;inset:0;background:linear-gradient(transparent 95%,#ffffff0b 96%),linear-gradient(90deg,transparent 95%,#ffffff0b 96%);background-size:42px 42px;mask-image:linear-gradient(90deg,#000,transparent)}
-    .startCard{position:relative;width:min(720px,calc(100% - 32px));padding:34px;border:1px solid #ffffff27;border-radius:22px;background:#0b1321d9;box-shadow:0 25px 90px #0009}
-    .tag{font-size:10px;font-weight:900;letter-spacing:3px;color:var(--lime)}h1{font-family:'Black Han Sans',sans-serif;font-size:clamp(42px,9vw,76px);line-height:1;margin:13px 0 10px;letter-spacing:1px}h1 span{color:var(--lime)}
-    .sub{color:#b4c0d0;font-size:14px;line-height:1.7;max-width:560px}.featureGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:24px 0}.feature{padding:12px;border-radius:11px;background:#ffffff09;border:1px solid #ffffff14}.feature b{font-size:12px;display:block}.feature small{color:#9caabd;font-size:10px}
-    button{font:inherit;cursor:pointer;border:0}.startBtn{width:100%;border-radius:11px;padding:15px;background:var(--lime);color:#111;font-weight:900;font-size:15px;box-shadow:0 7px 24px #c7ff4a29}.startBtn:active{transform:translateY(1px)}.fine{font-size:10px;color:#8290a3;margin-top:13px;text-align:center}
-    #mobile{display:none;position:fixed;inset:0;pointer-events:none}#pad{position:absolute;left:18px;bottom:25px;display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px 48px;gap:4px;pointer-events:auto}#pad button,#actions button{background:#07101dcc;border:1px solid #ffffff3b;border-radius:12px;color:white;font-size:17px;font-weight:900;backdrop-filter:blur(8px);touch-action:none}#up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
-    #actions{position:absolute;right:18px;bottom:26px;display:flex;flex-direction:column;gap:8px;pointer-events:auto}#actions button{width:62px;height:48px;font-size:10px}#actions .primary{background:#c7ff4a;color:#111;border-color:#c7ff4a}
-    #pause{position:absolute;top:18px;left:50%;transform:translateX(-50%);pointer-events:auto;background:#0b1321cc;border:1px solid #ffffff2a;color:white;border-radius:9px;padding:8px 12px;font-size:10px;display:none}
-    @media(max-width:700px){#brand{left:10px;top:10px;padding:7px 9px}#brand strong{font-size:13px}#brandMark{width:24px;height:24px}#wanted{right:10px;top:10px;min-width:125px;padding:7px 9px}#stars{font-size:20px}#mission{top:65px;min-width:180px;padding:8px 11px}#status{left:10px;bottom:15px;width:150px;padding:9px 10px}#cash{font-size:16px}#minimap{right:10px;bottom:15px;width:112px;height:112px}#hint{bottom:150px;font-size:9px;max-width:85vw;white-space:normal;text-align:center}#mobile{display:block}.featureGrid{grid-template-columns:1fr 1fr 1fr}.feature{padding:9px 6px}.feature b{font-size:10px}.feature small{font-size:8px}.startCard{padding:23px 18px}.sub{font-size:12px}}
-  </style>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#101923">
+<title>SEOUL CRIME — 서울 오픈월드</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap');
+:root{--ink:#0b121c;--panel:rgba(9,17,27,.84);--line:rgba(222,237,248,.17);--muted:#9aaaba;--lime:#c9fa58;--gold:#ffc94d;--cyan:#5ad9e8;--red:#ff5967}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101923;color:#f4f7fa;font-family:'Noto Sans KR',sans-serif;user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+#game{position:fixed;inset:0}
+canvas{display:block}
+#hud{position:fixed;inset:0;display:none;pointer-events:none}
+.glass{background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);box-shadow:0 12px 32px #0005}
+.topbar{position:absolute;left:16px;right:16px;top:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;padding:8px 13px;border-radius:13px}
+.brandMark{width:32px;height:32px;display:grid;place-items:center;background:var(--lime);color:#111;border-radius:9px;font-family:'Barlow Condensed';font-size:23px;font-weight:900}
+.brandName{font-family:'Barlow Condensed';font-size:22px;font-weight:900;letter-spacing:1.2px;line-height:1}
+.brandSub{font-size:9px;letter-spacing:2px;color:#9db0c1;margin-top:3px}
+.topRight{display:flex;align-items:center;gap:8px}
+.cashPill,.clockPill,.wanted{padding:8px 12px;border-radius:12px}
+.cashPill small,.clockPill small{display:block;color:#97a8b8;font-size:9px;letter-spacing:1.3px}
+.cashPill strong{display:block;color:var(--lime);font-size:17px;font-variant-numeric:tabular-nums}
+.clockPill strong{display:block;font:700 17px 'Barlow Condensed';letter-spacing:1px}
+.wanted{min-width:150px;text-align:right}
+.wanted small{font-size:9px;color:#aebbc7;letter-spacing:1.4px}
+#stars{font-size:22px;letter-spacing:2px;line-height:1.2;color:#586574}
+#stars .on{color:var(--gold);text-shadow:0 0 10px #ffa82a66}
+#objective{position:absolute;left:50%;top:89px;transform:translateX(-50%);padding:9px 15px;border-radius:12px;min-width:235px;max-width:min(440px,58vw);text-align:center}
+#objective small{font:800 10px 'Barlow Condensed';letter-spacing:2.3px;color:var(--lime)}
+#objective strong{display:block;margin-top:3px;font-size:12px;line-height:1.55}
+#locationTag{position:absolute;left:18px;top:83px;padding:7px 11px;border-radius:9px;font-size:10px;color:#cfdae4}
+#mapButton{position:absolute;right:17px;top:85px;pointer-events:auto;border-radius:10px;padding:9px 12px;background:#102130dc;border:1px solid #9ed4df44;font-weight:800;font-size:11px}
+#vehicleHud{position:absolute;right:18px;bottom:25px;min-width:130px;padding:10px 14px;border-radius:12px;text-align:right;display:none}
+#vehicleHud strong{font:800 30px 'Barlow Condensed';color:#fff}
+#vehicleHud small{display:block;font-size:9px;letter-spacing:1.5px;color:#a9bbc8}
+#bottomHint{position:absolute;left:50%;bottom:17px;transform:translateX(-50%);padding:7px 12px;border-radius:9px;font-size:10px;color:#ced8df;white-space:nowrap}
+#miniMap{position:absolute;right:16px;bottom:17px;width:148px;height:148px;border-radius:15px;overflow:hidden;border:1px solid #d2e5ef4c;background:#07121bdc;box-shadow:0 12px 30px #0007}
+#miniMap canvas{width:100%;height:100%}
+#mapLabel{position:absolute;left:9px;top:7px;font:700 8px 'Barlow Condensed';letter-spacing:1.7px;color:#e8f3f5a8}
+#toast{position:absolute;left:50%;top:145px;transform:translateX(-50%);padding:10px 15px;border-radius:10px;background:#101c27ed;border:1px solid #c9fa5860;color:#eaf8cf;font-size:11px;font-weight:700;opacity:0;transition:opacity .2s;white-space:nowrap;max-width:90vw}
+#crosshair{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:#ffffffb0;box-shadow:0 0 5px #000}
+#start{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(90deg,#07111cde,#0917238c 60%,#09131bd9);padding:18px}
+.startCard{width:min(710px,100%);padding:30px;border-radius:20px;border:1px solid #d7e7ef31;background:linear-gradient(135deg,#0c1824ed,#111f2bdc);box-shadow:0 30px 100px #000a;position:relative;overflow:hidden}
+.startCard:after{content:'SEOUL';position:absolute;right:-12px;bottom:-43px;font:900 150px 'Barlow Condensed';color:#e6f0f909;pointer-events:none}
+.tag{font:800 10px 'Barlow Condensed';letter-spacing:3px;color:var(--lime)}
+h1{font:900 clamp(48px,9vw,82px)/.92 'Barlow Condensed';letter-spacing:1px;margin:15px 0 13px}
+h1 span{color:var(--lime)}
+.startSub{font-size:13px;line-height:1.8;color:#c0cdd7;max-width:580px}
+.startFacts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0}
+.fact{padding:11px 12px;border-radius:10px;background:#ffffff0a;border:1px solid #ffffff12}
+.fact b{display:block;font-size:11px}.fact small{display:block;margin-top:4px;color:#9dafbc;font-size:9px;line-height:1.5}
+.startActions{display:flex;gap:8px}
+.startBtn{flex:1;padding:14px 16px;background:var(--lime);color:#101710;border-radius:10px;font-weight:900;font-size:14px}
+.secondaryBtn{padding:14px 16px;background:#ffffff10;border:1px solid #ffffff24;border-radius:10px;font-weight:800;font-size:12px}
+.fine{margin-top:12px;color:#8497a8;font-size:9px;line-height:1.6}
+#overlay{display:none;position:fixed;inset:0;z-index:8;background:#06101bd9;backdrop-filter:blur(10px);padding:18px;align-items:center;justify-content:center}
+.modal{width:min(820px,100%);max-height:min(760px,94vh);overflow:auto;border:1px solid #cbdbe42c;border-radius:18px;background:#101d29f5;box-shadow:0 24px 90px #000a;padding:19px}
+.modalHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.modalHead h2{font:800 28px 'Barlow Condensed';margin:0;letter-spacing:1px}
+.closeBtn{background:#ffffff12;border:1px solid #ffffff22;border-radius:9px;padding:8px 12px;font-weight:800}
+.mapLayout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:14px}
+#fullMap{width:100%;height:auto;aspect-ratio:1;border-radius:12px;background:#0b1822;border:1px solid #ffffff1c}
+.poiList{display:flex;flex-direction:column;gap:7px}
+.poiBtn,.appBtn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:10px 12px;background:#ffffff09;border:1px solid #ffffff16;border-radius:9px;font-size:11px}
+.poiBtn small,.appBtn small{display:block;color:#95a7b7;font-size:9px;margin-top:2px}
+.poiBtn .pin{font-size:17px}
+.phoneGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.appBtn{min-height:88px;display:block}
+.appIcon{font-size:22px;display:block;margin-bottom:7px}
+.appBtn b{font-size:11px}
+.infoText{font-size:11px;line-height:1.8;color:#b7c6d2;margin:10px 0}
+.settingsRow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #ffffff14;font-size:12px}
+#mobile{display:none;position:fixed;inset:0;z-index:4;pointer-events:none}
+#movePad{position:absolute;left:14px;bottom:22px;display:grid;grid-template-columns:48px 48px 48px;grid-template-rows:48px 48px;gap:4px;pointer-events:auto}
+#movePad button,#mobileActions button{background:#08131dd9;border:1px solid #e8f4fa55;border-radius:13px;color:white;font-size:15px;font-weight:900;backdrop-filter:blur(9px);touch-action:none;box-shadow:0 6px 20px #0005}
+#moveUp{grid-column:2}#moveLeft{grid-column:1;grid-row:2}#moveDown{grid-column:2;grid-row:2}#moveRight{grid-column:3;grid-row:2}
+#mobileActions{position:absolute;right:13px;bottom:22px;display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+#mobileActions button{width:62px;height:43px;font-size:10px}
+#mobileActions .primary{background:var(--lime);border-color:var(--lime);color:#111}
+#mobileActions .mapMini{background:#123443ed}
+@media(max-width:760px){
+ .topbar{left:8px;right:8px;top:8px;gap:5px}
+ .brand{padding:5px 7px;gap:6px}.brandMark{width:25px;height:25px;font-size:18px}.brandName{font-size:16px}.brandSub{font-size:7px;letter-spacing:1.2px}
+ .topRight{gap:4px}.cashPill,.clockPill,.wanted{padding:5px 7px;border-radius:9px}.cashPill small,.clockPill small,.wanted small{font-size:7px}.cashPill strong{font-size:13px}.clockPill strong{font-size:13px}#stars{font-size:15px;letter-spacing:1px}
+ #objective{top:53px;min-width:0;width:min(82vw,360px);max-width:82vw;padding:6px 9px}#objective small{font-size:8px}#objective strong{font-size:10px}
+ #locationTag{display:none}#mapButton{top:105px;right:10px;padding:7px 9px;font-size:9px}
+ #miniMap{right:10px;bottom:172px;width:100px;height:100px}
+ #mapLabel{font-size:7px}#bottomHint{display:none}#vehicleHud{right:10px;bottom:165px;min-width:90px;padding:6px 9px}#vehicleHud strong{font-size:24px}
+ #toast{top:145px;font-size:10px}
+ .startCard{padding:22px 17px}.startSub{font-size:11px}.startFacts{gap:5px;margin:15px 0}.fact{padding:8px 7px}.fact b{font-size:9px}.fact small{font-size:8px}.startActions{flex-direction:column}.secondaryBtn,.startBtn{padding:12px}
+ .mapLayout{grid-template-columns:1fr}.poiList{display:grid;grid-template-columns:1fr 1fr}.phoneGrid{grid-template-columns:repeat(2,1fr)}
+ #movePad{left:10px;bottom:17px;grid-template-columns:43px 43px 43px;grid-template-rows:43px 43px}
+ #mobileActions{right:10px;bottom:17px;gap:5px}#mobileActions button{width:55px;height:39px;font-size:9px}
+}
+@media(max-height:560px) and (orientation:landscape){
+ .topbar{top:5px}.brand{padding:4px}.brandMark{width:22px;height:22px}
+ #objective{top:48px}.startCard{padding:14px 20px}.startFacts{margin:10px 0}
+ #movePad,#mobileActions{bottom:8px}
+ #miniMap{width:82px;height:82px;bottom:8px;right:8px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 </head>
 <body>
 <div id="game"></div>
-<div id="start"><div class="startCard">
-  <div class="tag">SINGLE PLAYER · SEOUL OPEN WORLD</div>
+<div id="start">
+ <div class="startCard">
+  <div class="tag">SEOUL · SINGLE PLAYER OPEN WORLD</div>
   <h1>SEOUL <span>CRIME</span></h1>
-  <div class="sub">서울의 밤거리를 누비는 3D 오픈월드 액션 프로토타입. 직접 걷고, 차를 몰고, 시민들과 마주치고, 한국 경찰의 추격을 따돌려 보세요.</div>
-  <div class="featureGrid"><div class="feature"><b>🏙 서울 오픈월드</b><small>광화문 · 명동 · 북촌 · 청계천</small></div><div class="feature"><b>🚔 6단계 수배</b><small>한국 경찰 추격 AI</small></div><div class="feature"><b>🚶 생활 NPC</b><small>시민 · 차량 · 보행자</small></div></div>
-  <button class="startBtn" id="play">게임 시작</button><div class="fine">PC: WASD 이동 · Space 점프 · 마우스 드래그 시점 · E 차량 탑승 · F 미션 · J 소란 · Shift 달리기</div>
-</div></div>
-<div id="hud">
-  <div id="brand" class="panel"><div id="brandMark">S</div><div><strong>SEOUL CRIME</strong><small>SEOUL DISTRICT · 01</small></div></div>
-  <div id="mission" class="panel"><div class="eyebrow">CURRENT OBJECTIVE</div><div id="missionText">지도에서 배달 임무를 찾아보세요</div></div>
-  <div id="wanted" class="panel"><div id="wantedLabel">서울경찰청 · 수배 레벨</div><div id="stars">☆☆☆☆☆☆</div></div>
-  <div id="status" class="panel"><div class="statrow"><span>체력</span><b id="healthNum">100%</b></div><div class="bar"><i id="healthBar"></i></div><div class="statrow"><span>보유 금액</span><b>WON</b></div><div id="cash">₩ 12,000</div></div>
-  <div id="hint" class="panel">WASD 이동 · E 차량 탑승/하차 · F 상호작용 · J 소란</div>
-  <div id="minimap"><canvas id="mapCanvas" width="220" height="220"></canvas><div id="mapCaption">SEOUL / RADAR</div></div>
-  <div id="toast"></div><div id="crosshair"></div>
+  <p class="startSub">서울의 여러 구역을 자유롭게 탐험하고, 자동차와 택시를 운전하고, 배달·택시 미션을 수행하세요. 한국 경찰의 수배망을 따돌리고 나만의 서울 이야기를 만들어 보세요.</p>
+  <div class="startFacts">
+   <div class="fact"><b>🏙 6개 서울 구역</b><small>광화문 · 북촌 · 명동 · 시청 · 동대문 · 홍대</small></div>
+   <div class="fact"><b>🚇 도시 교통</b><small>지하철 빠른 이동 · 버스 · 택시 · 승용차</small></div>
+   <div class="fact"><b>🚔 수배 시스템</b><small>6단계 경찰 추격 · 도주 · 검거</small></div>
+  </div>
+  <div class="startActions">
+   <button class="startBtn" id="play">새 게임 시작</button>
+   <button class="secondaryBtn" id="continue">이어하기</button>
+  </div>
+  <div class="fine">PC: WASD 이동 · Shift 달리기/가속 · Space 점프 · E 차량/지하철 · F 미션 · M 지도 · P 휴대폰 · Q 날씨 · T 시간대<br>모바일: 화면 하단 방향키와 액션 버튼 사용 · 가로 화면 권장</div>
+ </div>
 </div>
-<div id="mobile"><div id="pad"><button id="up">▲</button><button id="left">◀</button><button id="down">▼</button><button id="right">▶</button></div><div id="actions"><button id="sprint">달리기</button><button id="jump">점프</button><button id="enter">차량 E</button><button id="interact">미션 F</button><button id="crime" class="primary">소란 J</button></div></div>
+<div id="hud">
+ <div class="topbar">
+  <div class="brand glass"><div class="brandMark">S</div><div><div class="brandName">SEOUL CRIME</div><div class="brandSub" id="districtName">JONGNO · SEOUL</div></div></div>
+  <div class="topRight">
+   <div class="clockPill glass"><small id="weatherText">맑음 · 18°C</small><strong id="clockText">18:40</strong></div>
+   <div class="cashPill glass"><small>보유 금액 · WON</small><strong id="cash">₩ 12,000</strong></div>
+   <div class="wanted glass"><small>SEOUL POLICE · 수배</small><div id="stars">☆☆☆☆☆☆</div></div>
+  </div>
+ </div>
+ <div id="objective" class="glass"><small>현재 목표 · CURRENT OBJECTIVE</small><strong id="missionText">지도 또는 휴대폰에서 첫 임무를 선택하세요</strong></div>
+ <div id="locationTag" class="glass">📍 광화문 광장</div>
+ <button id="mapButton">지도 / M</button>
+ <div id="miniMap"><canvas id="mapCanvas" width="220" height="220"></canvas><div id="mapLabel">SEOUL CITY MAP</div></div>
+ <div id="vehicleHud" class="glass"><strong id="speed">0</strong><small>KM/H · VEHICLE</small></div>
+ <div id="bottomHint" class="glass">WASD 이동 · E 차량/지하철 · F 상호작용 · M 지도 · P 휴대폰</div>
+ <div id="toast"></div><div id="crosshair"></div>
+</div>
+<div id="mobile">
+ <div id="movePad">
+  <button id="moveUp">▲</button><button id="moveLeft">◀</button><button id="moveDown">▼</button><button id="moveRight">▶</button>
+ </div>
+ <div id="mobileActions">
+  <button id="mobileRun">달리기</button><button id="mobileJump">점프</button><button id="mobileEnter">차량 E</button><button id="mobileInteract">미션 F</button><button class="primary" id="mobileCrime">소란 +1★</button><button class="mapMini" id="mobilePhone">휴대폰</button>
+ </div>
+</div>
+<div id="overlay">
+ <div class="modal" id="mapModal" style="display:none">
+  <div class="modalHead"><h2>SEOUL CITY MAP</h2><button class="closeBtn" data-close>닫기 ✕</button></div>
+  <div class="mapLayout"><canvas id="fullMap" width="640" height="640"></canvas><div><p class="infoText">서울 지도를 눌러 목적지를 지정하세요. 주요 명소와 지하철역, 미션 위치가 표시됩니다.</p><div class="poiList" id="poiList"></div><p class="infoText" id="routeText">목적지 없음</p></div></div>
+ </div>
+ <div class="modal" id="phoneModal" style="display:none">
+  <div class="modalHead"><h2>MY PHONE · 서울 생활 앱</h2><button class="closeBtn" data-close>닫기 ✕</button></div>
+  <div class="phoneGrid">
+   <button class="appBtn" id="phoneMap"><span class="appIcon">🗺️</span><b>서울 지도</b><small>목적지와 주변 명소</small></button>
+   <button class="appBtn" id="phoneJobs"><span class="appIcon">📦</span><b>일거리</b><small>배달 · 택시 · 퀵서비스</small></button>
+   <button class="appBtn" id="phoneMetro"><span class="appIcon">🚇</span><b>지하철</b><small>역간 빠른 이동</small></button>
+   <button class="appBtn" id="phoneWeather"><span class="appIcon">🌦️</span><b>날씨 변경</b><small>맑음 · 흐림 · 비 · 안개</small></button>
+   <button class="appBtn" id="phoneTime"><span class="appIcon">🌆</span><b>시간대 변경</b><small>아침 · 노을 · 야간</small></button>
+   <button class="appBtn" id="phoneSave"><span class="appIcon">💾</span><b>게임 저장</b><small>현재 위치와 진행도 저장</small></button>
+  </div>
+  <p class="infoText" id="phoneInfo">휴대폰에서 서울 생활과 일거리를 관리하세요.</p>
+ </div>
+ <div class="modal" id="jobsModal" style="display:none">
+  <div class="modalHead"><h2>일거리 · JOB CENTER</h2><button class="closeBtn" data-close>닫기 ✕</button></div>
+  <div class="phoneGrid">
+   <button class="appBtn" data-job="delivery"><span class="appIcon">📦</span><b>음식 배달</b><small>목적지까지 배달 · ₩18,000</small></button>
+   <button class="appBtn" data-job="taxi"><span class="appIcon">🚕</span><b>택시 운행</b><small>승객 픽업 · ₩25,000</small></button>
+   <button class="appBtn" data-job="courier"><span class="appIcon">🛵</span><b>긴급 퀵서비스</b><small>빠른 배송 · ₩32,000</small></button>
+  </div>
+  <p class="infoText">미션을 수락하면 지도에 목적지가 표시됩니다. 도착 지점 근처에서 F 키를 누르세요.</p>
+ </div>
+</div>
 <script type="module">
 import * as THREE from 'three';
 
-const $=id=>document.getElementById(id);
-const gameRoot=$('game');
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x92a8ba); scene.fog=new THREE.Fog(0x92a8ba,85,225);
-const camera=new THREE.PerspectiveCamera(63,innerWidth/innerHeight,.1,400);
-const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth,innerHeight); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.15; gameRoot.appendChild(renderer.domElement);
-scene.add(new THREE.HemisphereLight(0xc8e3ff,0x435060,2.0));
-const sun=new THREE.DirectionalLight(0xffe3bf,2.1); sun.position.set(-55,90,35); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); sun.shadow.camera.left=-130;sun.shadow.camera.right=130;sun.shadow.camera.top=130;sun.shadow.camera.bottom=-130;scene.add(sun);
-const mat=(color,roughness=.85,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
-const mats={road:mat(0x303944),side:mat(0x8b9295),line:mat(0xe9e4cc),grass:mat(0x6c846c),glass:mat(0x29485b,.3,.25),white:mat(0xe8e6df),black:mat(0x202630),skin:mat(0xd6a17b),yellow:mat(0xffd33e),blue:mat(0x2765a8),red:mat(0xd8473e)};
-const box=(w,h,d,material,x,y,z,parent=scene)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
-const cylinder=(r1,r2,h,material,x,y,z,parent=scene)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,12),material);m.position.set(x,y,z);m.castShadow=true;parent.add(m);return m};
+const $ = id => document.getElementById(id);
+const root = $('game');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x182938);
+scene.fog = new THREE.FogExp2(0x182938,0.00155);
+const camera = new THREE.PerspectiveCamera(61,innerWidth/innerHeight,.1,900);
+const renderer = new THREE.WebGLRenderer({antialias:innerWidth>760,alpha:false,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.18;
+root.appendChild(renderer.domElement);
 
-// City ground, road grid and blocks
-const ground=new THREE.Mesh(new THREE.PlaneGeometry(260,260),mat(0x788a7a));ground.rotation.x=-Math.PI/2;ground.position.y=-.12;ground.receiveShadow=true;scene.add(ground);
-const roads=[-90,-45,0,45,90];
-for(const v of roads){box(260,.12,13,mats.road,0,.01,v);box(13,.12,260,mats.road,v,.012,0);}
-// road lane markings
-for(const v of roads){for(let p=-122;p<125;p+=12){box(4,.025,.18,mats.line,p,.09,v);box(.18,.025,4,mats.line,v,.09,p);}}
-// Sidewalk strips along streets
-for(const v of roads){box(260,.25,2.4,mats.side,0,.08,v+8);box(260,.25,2.4,mats.side,0,.08,v-8);box(2.4,.25,260,mats.side,v+8,.08,0);box(2.4,.25,260,mats.side,v-8,.08,0);}
-const buildingBlocks=[];
-const buildingColors=[0x8c9aa2,0xb2a99b,0x687e8e,0xb9b8ad,0x827e88,0xc1b8a5,0x708b85];
-function building(x,z,w,d,h,color){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);box(w,h,d,mat(color),0,h/2,0,g);box(w+.5,.65,d+.5,mat(0x3d4b5a),0,h+.32,0,g); // rooftop rim
-  const rows=Math.max(2,Math.floor(h/3.2));for(let r=0;r<rows;r++){for(let c=0;c<Math.max(2,Math.floor(w/3.8));c++){const wx=-w/2+1.5+c*3.8;const wy=1.7+r*3.2;if(wy<h-1)box(1.15,1.15,.06,mat(r%2?0x263f50:0x354c5e,.28),wx,wy,d/2+.035,g);}}
-  buildingBlocks.push({x,z,w,d,h});return g;}
-for(let ix=-2;ix<=1;ix++)for(let iz=-2;iz<=1;iz++){
- const cx=ix*45+22.5,cz=iz*45+22.5;
- // preserve the stream corridor and landmark plazas
- if(Math.abs(cz+22)<13)continue;
- const count=2+((ix+iz+8)%3);
- for(let i=0;i<count;i++){
-  const x=cx+(i%2?9:-9)+(Math.sin(ix*4+iz*3+i)*2),z=cz+(i<2?-8:8)+(Math.cos(iz*5+ix+i)*2);
-  const w=10+(i%3)*2,d=9+(i%2)*3,h=12+((ix*7+iz*5+i*11+80)%5)*5;
-  building(x,z,w,d,h,buildingColors[Math.abs(ix*3+iz*2+i)%buildingColors.length]);
+const hemi = new THREE.HemisphereLight(0xc2d9ed,0x293b42,1.35); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffd7a1,2.15);
+sun.position.set(-110,150,90); sun.castShadow = true;
+sun.shadow.mapSize.set(1024,1024);
+sun.shadow.camera.left=-190;sun.shadow.camera.right=190;sun.shadow.camera.top=190;sun.shadow.camera.bottom=-190;
+sun.shadow.bias=-0.0003; scene.add(sun);
+const fillLight = new THREE.DirectionalLight(0x7bb3d6,.45); fillLight.position.set(90,50,-120);scene.add(fillLight);
+
+let seed=93621;
+function rand(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+function mat(color,rough=.85,metal=0,extra={}){return new THREE.MeshStandardMaterial(Object.assign({color,roughness:rough,metalness:metal},extra));}
+function mesh(geo,material,x,y,z,parent=scene){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+function box(w,h,d,material,x,y,z,parent=scene){return mesh(new THREE.BoxGeometry(w,h,d),material,x,y,z,parent);}
+function cylinder(rt,rb,h,material,x,y,z,parent=scene,segments=12){return mesh(new THREE.CylinderGeometry(rt,rb,h,segments),material,x,y,z,parent);}
+function plane(w,h,material,x,y,z,parent=scene,rotation=-Math.PI/2){const m=mesh(new THREE.PlaneGeometry(w,h),material,x,y,z,parent);m.rotation.x=rotation;return m;}
+function canvasTexture(canvas,repeatX=1,repeatY=1){const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeatX,repeatY);t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t;}
+
+function makeRoadTexture(){
+ const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
+ x.fillStyle='#343c43';x.fillRect(0,0,512,512);
+ const im=x.getImageData(0,0,512,512);
+ for(let i=0;i<im.data.length;i+=4){const n=(rand()-.5)*24;im.data[i]+=n;im.data[i+1]+=n;im.data[i+2]+=n;}
+ x.putImageData(im,0,0);
+ for(let i=0;i<1800;i++){x.fillStyle=rand()>.5?'#151d2440':'#b2bbc01b';x.fillRect(rand()*512,rand()*512,rand()*3+.4,rand()*2+.4);}
+ return canvasTexture(c,8,8);
+}
+function makeWalkTexture(){
+ const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d');
+ x.fillStyle='#747f83';x.fillRect(0,0,512,512);
+ for(let y=0;y<512;y+=64)for(let xx=0;xx<512;xx+=128){const off=(y/64)%2?64:0;x.fillStyle='#ffffff0b';x.fillRect(xx+off+2,y+2,124,60);x.strokeStyle='#35434a55';x.lineWidth=2;x.strokeRect(xx+off+2,y+2,124,60);}
+ for(let i=0;i<1400;i++){x.fillStyle=rand()>.5?'#1c25272a':'#e7e9e51b';x.fillRect(rand()*512,rand()*512,2,2);}
+ return canvasTexture(c,5,5);
+}
+function makeFacade(base,accent,night=false){
+ const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');
+ x.fillStyle=base;x.fillRect(0,0,512,512);
+ const rows=7,cols=6,margin=19,gap=11,ww=(512-margin*2-gap*(cols-1))/cols,hh=42;
+ for(let r=0;r<rows;r++){
+  const yy=18+r*70;
+  x.fillStyle='rgba(11,22,31,.24)';x.fillRect(0,yy+59,512,7);
+  for(let col=0;col<cols;col++){
+   const xx=margin+col*(ww+gap);const lit=night&&rand()>.42;
+   x.fillStyle='#26343e';x.fillRect(xx-3,yy-3,ww+6,hh+8);
+   const g=x.createLinearGradient(xx,yy,xx+ww,yy+hh);
+   g.addColorStop(0,lit?'#d8b984':'#4d6f83');g.addColorStop(.38,lit?'#8c9b9b':'#203d53');g.addColorStop(1,lit?'#6c766f':'#172c3b');
+   x.fillStyle=g;x.fillRect(xx,yy,ww,hh);
+   x.fillStyle=lit?'rgba(255,218,151,.38)':'rgba(255,255,255,.16)';x.fillRect(xx+4,yy+4,ww*.16,hh-8);
+   x.fillStyle='#17222a';x.fillRect(xx-4,yy+hh,ww+8,4);
+   if(rand()>.72){x.fillStyle='#263842';x.fillRect(xx+ww*.58,yy+hh+5,ww*.32,9);}
+  }
+ }
+ x.fillStyle=accent;x.fillRect(0,0,512,13);x.fillRect(0,497,512,15);
+ for(let i=0;i<22;i++){x.fillStyle='#ffffff10';x.fillRect(rand()*512,rand()*512,rand()*18+3,2);}
+ return canvasTexture(c,1,1);
+}
+function makeHanokWall(){
+ const c=document.createElement('canvas');c.width=512;c.height=512;const x=c.getContext('2d');
+ x.fillStyle='#c8bda5';x.fillRect(0,0,512,512);
+ for(let r=0;r<12;r++){x.strokeStyle='#a39781';x.lineWidth=2;x.beginPath();x.moveTo(0,r*44);x.lineTo(512,r*44);x.stroke();}
+ for(let col=0;col<4;col++){x.fillStyle='#523e31';x.fillRect(25+col*125,120,12,320);x.fillStyle='#ddd0b5';x.fillRect(42+col*125,160,68,135);x.strokeStyle='#6a4c37';x.lineWidth=4;x.strokeRect(42+col*125,160,68,135);}
+ return canvasTexture(c);
+}
+const roadMat=mat(0xffffff,.98,0,{map:makeRoadTexture()});
+const walkMat=mat(0xffffff,.95,0,{map:makeWalkTexture()});
+const grassMat=mat(0x4f6c54,.95),concrete=mat(0x8b9698,.92),darkMetal=mat(0x202c34,.65,.55);
+const glassMat=mat(0x16394b,.18,.35,{transparent:true,opacity:.88});
+const white=mat(0xe6e7e2,.6), black=mat(0x121a21,.78), gold=mat(0xc39b59,.55,.4);
+const neonMats=[0xff4d91,0x43d8fa,0xffc95c,0x8ce75b,0xb99bff].map(c=>new THREE.MeshBasicMaterial({color:c,side:THREE.DoubleSide}));
+const signCanvas=(title,color)=>{
+ const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
+ x.fillStyle='#101c29';x.fillRect(0,0,512,128);x.fillStyle=color;x.fillRect(5,5,502,118);
+ x.fillStyle='#101923';x.fillRect(11,11,490,106);x.fillStyle=color;x.font='900 64px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(title,256,67);
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+};
+function addSign(parent,title,color,w=7,h=1.25,y=3.5,z=4){
+ const t=signCanvas(title,color);const m=mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,side:THREE.DoubleSide}),0,y,z,parent);return m;
+}
+
+// City ground and road network
+plane(620,620,mat(0x4c6559),0,-.22,0);
+const roads=[-240,-160,-80,0,80,160,240];
+for(const v of roads){
+ plane(620,20,roadMat,0,.015,v);
+ plane(20,620,roadMat,v,.018,0);
+ // pale stone sidewalks on both sides
+ for(const side of [-1,1]){
+  plane(620,4.6,walkMat,0,.035,v+side*13.1);
+  plane(4.6,620,walkMat,v+side*13.1,.037,0);
+ }
+ // dashed lane separators and edge reflectors
+ for(let p=-292;p<295;p+=16){
+  box(7,.025,.17,mat(0xd9d5bb,.6),p,.055,v);
+  box(.17,.025,7,mat(0xd9d5bb,.6),v,.055,p);
  }
 }
-// Cheonggyecheon stream running east-west
-box(260,.35,11,mat(0x397d91,.22,.25),0,-.02,-22);
-box(260,.45,1.2,mat(0x9ca9a1),0,.12,-28.2);box(260,.45,1.2,mat(0x9ca9a1),0,.12,-15.8);
-for(let x=-100;x<115;x+=38){box(9,.55,13,mat(0x9b9d9a),x,.28,-22);}
-// Trees
-function tree(x,z,s=1){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);cylinder(.23*s,.36*s,2.1*s,mat(0x6a4934),0,1*s,0,g);const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(1.3*s,1),mat(0x326b52));leaves.position.y=2.3*s;leaves.castShadow=true;g.add(leaves);}
-for(let x=-115;x<=115;x+=14){for(const z of [-12,-32,12,32,57,-57,102]){if(Math.abs(z+22)>12)tree(x,z,.75+((x+z)%3)*.05);}}
-
-// Landmark: Gwanghwamun-inspired gate
-const gate=new THREE.Group();gate.position.set(-4,0,69);scene.add(gate);
-const stone=mat(0xd1c6ae),roof=mat(0x273f37),darkWood=mat(0x654332);
-box(18,1.1,3,stone,0,.6,0,gate);for(const x of [-6.2,0,6.2]){box(1.8,7,2.2,stone,x,4,0,gate);box(2.3,.6,2.6,darkWood,x,7.5,0,gate);}
-box(19,1.1,4,darkWood,0,8.4,0,gate);const roofShape=new THREE.Mesh(new THREE.ConeGeometry(11,3.2,4),roof);roofShape.rotation.y=Math.PI/4;roofShape.position.set(0,10.4,0);roofShape.scale.z=.65;roofShape.castShadow=true;gate.add(roofShape);
-box(18,.5,1.4,mat(0x263b33),0,9.1,0,gate);
-// Hanok village area
-function hanok(x,z){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);box(9,2.8,7,mat(0xb49d7c),0,1.4,0,g);box(9.8,.35,7.8,mat(0x4b3530),0,2.95,0,g);const r1=box(11,.28,4.5,mat(0x354c3e),0,3.35,0,g);r1.rotation.z=-.12;const r2=box(11,.28,4.5,mat(0x354c3e),0,3.35,0,g);r2.rotation.z=.12;box(2,2,.12,mat(0x523d30),0,1.05,3.56,g);}
-for(let x=-75;x<-46;x+=14)for(let z=15;z<45;z+=13)hanok(x,z);
-// Myeongdong neon-style signs
-function sign(x,y,z,width,text,color=0xff4778){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='#111827';ctx.fillRect(0,0,512,128);ctx.strokeStyle='#ffffff70';ctx.lineWidth=5;ctx.strokeRect(4,4,504,120);ctx.fillStyle='#'+color.toString(16).padStart(6,'0');ctx.font='bold 62px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,67);const tex=new THREE.CanvasTexture(c);const m=new THREE.Mesh(new THREE.PlaneGeometry(width,2.4),new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}));m.position.set(x,y,z);scene.add(m);}
-sign(53,9,38,9,'명동 STREET',0xff4778);sign(68,13,23,8,'SEOUL 24H',0x42d9ff);sign(37,8,53,7,'분식 · 카페',0xffca58);
-
-// streetlights
-for(const v of roads){for(let p=-100;p<=100;p+=45){for(const side of [-1,1]){const x=v+side*10,z=p;cylinder(.12,.16,5,mat(0x313943),x,2.5,z);box(.9,.12,.2,mat(0x313943),x+side*.35,5,z);const l=new THREE.PointLight(0xffdca0,.22,12);l.position.set(x+side*.6,4.8,z);scene.add(l);}}}
-
-// Characters and vehicles
-function person(color=0x426a90,police=false){const g=new THREE.Group();const shirt=mat(color),pants=mat(police?0x172b49:0x333a45),skin=mat(0xd6a17b);const torso=box(.75,1.05,.42,shirt,0,1.45,0,g);const head=new THREE.Mesh(new THREE.SphereGeometry(.27,12,10),skin);head.position.y=2.18;head.castShadow=true;g.add(head);const legL=box(.25,.78,.3,pants,-.2,.47,0,g),legR=box(.25,.78,.3,pants,.2,.47,0,g);const armL=box(.2,.75,.22,shirt,-.52,1.48,0,g),armR=box(.2,.75,.22,shirt,.52,1.48,0,g);if(police){box(.35,.22,.44,mat(0x172b49),0,2.43,0,g);box(.12,.08,.08,mat(0xe7e7e7),0,2.31,.23,g);}return {group:g,legL,legR,armL,armR,torso};}
-function carModel(color=0xd5d8da,police=false){const g=new THREE.Group();const body=mat(color,.45,.25),glass=mat(0x203c50,.2,.3),tire=mat(0x15191f,.95),rim=mat(0xaeb9c2,.35,.6);box(2.25,.72,4.5,body,0,.85,0,g);box(1.65,.85,2.3,glass,0,1.58,-.15,g);box(1.9,.22,.5,body,0,1.12,1.65,g);for(const x of [-1.15,1.15])for(const z of [-1.45,1.45]){const w=new THREE.Mesh(new THREE.CylinderGeometry(.43,.43,.28,16),tire);w.rotation.z=Math.PI/2;w.position.set(x,.47,z);g.add(w);const hub=new THREE.Mesh(new THREE.CylinderGeometry(.19,.19,.3,12),rim);hub.rotation.z=Math.PI/2;hub.position.set(x,.47,z);g.add(hub);}for(const x of [-.78,.78]){const light=box(.34,.18,.12,mat(0xffefcf,.3),x,.9,2.27,g);}if(police){box(.9,.16,.4,mat(0x111820),0,2.08,0,g);for(const side of [-1,1]){box(.1,.22,3.6,mat(0x244f83),side*1.14,1.0,0,g);const badgeCanvas=document.createElement('canvas');badgeCanvas.width=256;badgeCanvas.height=64;const bx=badgeCanvas.getContext('2d');bx.fillStyle='#ffffff';bx.fillRect(0,0,256,64);bx.fillStyle='#164b87';bx.font='bold 36px sans-serif';bx.textAlign='center';bx.textBaseline='middle';bx.fillText('경찰 POLICE',128,33);const badgeTex=new THREE.CanvasTexture(badgeCanvas);const badge=new THREE.Mesh(new THREE.PlaneGeometry(1.25,.31),new THREE.MeshBasicMaterial({map:badgeTex,transparent:true,side:THREE.DoubleSide}));badge.position.set(side*1.205,1.28,0);badge.rotation.y=side*Math.PI/2;g.add(badge);}const red=new THREE.Mesh(new THREE.BoxGeometry(.36,.18,.18),mat(0xff2b39,.3));red.position.set(-.24,2.2,0);g.add(red);const blue=new THREE.Mesh(new THREE.BoxGeometry(.36,.18,.18),mat(0x2b91ff,.3));blue.position.set(.24,2.2,0);g.add(blue);g.userData.sirens=[red,blue];}g.userData.wheels=[];return g;}
-const player=person(0x3f789e);player.group.position.set(0,0,8);scene.add(player.group);
-let playerPos=player.group.position,playerAngle=0,health=100,cash=12000,wanted=0,crimePoints=0,escapeTimer=0,missionState=0,missionMoney=0;
-let inCar=null,gameStarted=false,paused=false,playerVertical=0,jumpRequested=false;
-const vehicles=[],traffic=[],policeCars=[],npcs=[];
-const playerCar=carModel(0xd7dadc);playerCar.position.set(5,0,10);scene.add(playerCar);vehicles.push({mesh:playerCar,owned:true,speed:0,angle:0});
-const trafficColors=[0xedefec,0x202a34,0x5d7896,0xd6b14d,0x9c4540,0xb9c5c7];
-for(let i=0;i<13;i++){const vertical=i%2===0;const lane=roads[(i*3)%roads.length]+(vertical?2: -2);const t=carModel(trafficColors[i%trafficColors.length]);t.position.set(vertical?lane:-105+i*17,0,vertical?-105+i*16:lane);t.rotation.y=vertical?0:Math.PI/2;scene.add(t);const v={mesh:t,angle:t.rotation.y,speed:3.5+(i%4),vertical,dir:i%3===0?-1:1};vehicles.push(v);traffic.push(v);}
-// Pedestrian navigation pockets
-for(let i=0;i<27;i++){const n=person([0x4f8e8a,0x8a648b,0x547ca5,0x9d7952,0xb6b8be,0x385c49][i%6]);const x=(Math.random()-.5)*200,z=(Math.random()-.5)*200;n.group.position.set(x,0,z);scene.add(n.group);npcs.push({model:n,target:new THREE.Vector3(x+(Math.random()-.5)*15,0,z+(Math.random()-.5)*15),speed:.5+Math.random()*.55,phase:Math.random()*6});}
-
-// Mission markers
-function marker(x,z,color){const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(2.4,.16,8,32),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9}));ring.rotation.x=Math.PI/2;ring.position.y=.18;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.12,.7,4,16,1,true),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.17,side:THREE.DoubleSide}));beam.position.y=2;g.add(beam);return g;}
-const pickup=marker(25,-42,0xc7ff4a),delivery=marker(90,45,0x42d9ff);delivery.visible=false;
-
-// Input
-const keys={};addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();keys[e.key.toLowerCase()]=true;if(e.code==='Space'){keys.space=true;jumpRequested=true;}if(!gameStarted)return;if(e.repeat)return;if(e.key.toLowerCase()==='e')toggleCar();if(e.key.toLowerCase()==='f')interact();if(e.key.toLowerCase()==='j')causeTrouble();if(e.key.toLowerCase()==='h')toast('경적을 울렸습니다');if(e.key==='Escape')togglePause();});addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.code==='Space')keys.space=false;});
-let drag=false,lastX=0;renderer.domElement.addEventListener('pointerdown',e=>{if(e.button===0){drag=true;lastX=e.clientX;}});addEventListener('pointerup',()=>drag=false);addEventListener('pointermove',e=>{if(drag&&gameStarted&&!inCar){playerAngle-=(e.clientX-lastX)*.006;lastX=e.clientX;}});
-function bindHold(id,key){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});for(const ev of ['pointerup','pointerleave','pointercancel'])el.addEventListener(ev,()=>keys[key]=false);}
-bindHold('up','w');bindHold('down','s');bindHold('left','a');bindHold('right','d');bindHold('sprint','shift');$('jump').addEventListener('pointerdown',e=>{e.preventDefault();jumpRequested=true;});$('enter').addEventListener('pointerdown',e=>{e.preventDefault();toggleCar();});$('interact').addEventListener('pointerdown',e=>{e.preventDefault();interact();});$('crime').addEventListener('pointerdown',e=>{e.preventDefault();causeTrouble();});
-function toast(message){const el=$('toast');el.textContent=message;el.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.opacity=0,2200);}
-function togglePause(){paused=!paused;toast(paused?'일시정지':'게임 재개');}
-function raiseWanted(){wanted=Math.min(6,wanted+1);crimePoints=0;escapeTimer=0;toast(`수배 레벨 상승! ★ ${wanted}단계`);}
-function causeTrouble(){if(performance.now()-(causeTrouble.last||0)<1700)return;causeTrouble.last=performance.now();raiseWanted();}
-function toggleCar(){if(inCar){inCar.mesh.visible=true;player.group.visible=true;player.group.position.copy(inCar.mesh.position);player.group.position.x+=Math.sin(inCar.angle+Math.PI/2)*2;player.group.position.z+=Math.cos(inCar.angle+Math.PI/2)*2;playerPos=player.group.position;playerAngle=inCar.angle;inCar.speed*=.35;inCar=null;toast('차량에서 내렸습니다');return;}
- let nearest=null,dist=5.5;for(const v of vehicles){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
- if(nearest){inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;raiseWanted();toast('차량을 확보했습니다 · 수배 1단계');}else toast('탑승할 차량이 가까이 없습니다');}
-function interact(){if(missionState===0&&playerPos.distanceTo(pickup.position)<9){missionState=1;pickup.visible=false;delivery.visible=true;$('missionText').textContent='배달 목적지: 동쪽 청계천 건너편';toast('배달 임무 시작! 목적지로 이동하세요');return;}if(missionState===1&&playerPos.distanceTo(delivery.position)<10){missionState=2;delivery.visible=false;cash+=18000;$('missionText').textContent='임무 완료 · 다음 임무 준비 중';toast('배달 성공! ₩18,000 획득');return;}if(missionState===2&&playerPos.distanceTo(pickup.position)<9){missionState=0;pickup.visible=true;$('missionText').textContent='지도에서 배달 임무를 찾아보세요';toast('새 배달 임무가 등록됐습니다');return;}toast('근처에 상호작용할 대상이 없습니다');}
-$('play').onclick=()=>{$('start').style.display='none';$('hud').style.display='block';gameStarted=true;toast('서울에 오신 것을 환영합니다');};
-
-// Collision with building footprints (simple circular resolution)
-function resolveBuildings(pos,radius){for(const b of buildingBlocks){const minX=b.x-b.w/2-radius,maxX=b.x+b.w/2+radius,minZ=b.z-b.d/2-radius,maxZ=b.z+b.d/2+radius;if(pos.x>minX&&pos.x<maxX&&pos.z>minZ&&pos.z<maxZ){const dx=Math.min(Math.abs(pos.x-minX),Math.abs(maxX-pos.x)),dz=Math.min(Math.abs(pos.z-minZ),Math.abs(maxZ-pos.z));if(dx<dz)pos.x=pos.x-b.x>0?maxX:minX;else pos.z=pos.z-b.z>0?maxZ:minZ;}}pos.x=THREE.MathUtils.clamp(pos.x,-124,124);pos.z=THREE.MathUtils.clamp(pos.z,-124,124);}
-function playerStep(dt){const forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),turn=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);if(inCar){const v=inCar;v.speed+=forward*(keys.shift?25:17)*dt;v.speed*=Math.pow(.985,dt*60);v.speed=THREE.MathUtils.clamp(v.speed,-8,keys.shift?32:24);v.angle+=turn*dt*(1.55+Math.abs(v.speed)*.045)*Math.sign(v.speed||1);v.mesh.rotation.y=v.angle;const next=v.mesh.position.clone();next.x+=Math.sin(v.angle)*v.speed*dt;next.z+=Math.cos(v.angle)*v.speed*dt;resolveBuildings(next,1.7);v.mesh.position.copy(next);playerPos=v.mesh.position;
- }else{if(jumpRequested&&player.group.position.y<=.025)playerVertical=7.2;jumpRequested=false;playerVertical-=18*dt;player.group.position.y=Math.max(0,player.group.position.y+playerVertical*dt);if(player.group.position.y===0)playerVertical=0;playerAngle+=turn*dt*2.5;const speed=keys.shift?9:5.2;const move=new THREE.Vector3(Math.sin(playerAngle),0,Math.cos(playerAngle)).multiplyScalar(forward*speed*dt);const next=playerPos.clone().add(move);resolveBuildings(next,.65);player.group.position.copy(next);playerPos=player.group.position;player.group.rotation.y=playerAngle;const walking=Math.abs(forward)>0;if(walking){const swing=Math.sin(performance.now()*.012)*.55;player.legL.rotation.x=swing;player.legR.rotation.x=-swing;player.armL.rotation.x=-swing*.7;player.armR.rotation.x=swing*.7;}else{player.legL.rotation.x=player.legR.rotation.x=0;}}
+// zebra crossings at busy intersections
+const zebraMat=new THREE.MeshBasicMaterial({color:0xe7e8e4});
+for(const x of roads)for(const z of roads){
+ for(let i=-6;i<=6;i++){
+  plane(.68,11,zebraMat,x+i*1.18,.058,z-10.1);
+  plane(11,.68,zebraMat,x-10.1,.059,z+i*1.18);
+ }
+ box(11,.04,.28,mat(0xe8e8df),x,.07,z-17.2);
+ box(.28,.04,11,mat(0xe8e8df),x-17.2,.07,z);
 }
-function npcStep(dt,time){for(const n of npcs){const p=n.model.group.position;const to=n.target.clone().sub(p);if(to.length()<1.7){n.target.set(THREE.MathUtils.clamp(p.x+(Math.random()-.5)*23,-115,115),0,THREE.MathUtils.clamp(p.z+(Math.random()-.5)*23,-115,115));}else{const dir=to.normalize();const flee=wanted>0&&p.distanceTo(playerPos)<13;if(flee)dir.copy(p).sub(playerPos).normalize();p.addScaledVector(dir,n.speed*(flee?2.6:1)*dt);n.model.group.rotation.y=Math.atan2(dir.x,dir.z);const swing=Math.sin(time*.006+n.phase)*.35;n.model.legL.rotation.x=swing;n.model.legR.rotation.x=-swing;}}}
-function trafficStep(dt){for(const v of traffic){const p=v.mesh.position;if(v.vertical)p.z+=v.dir*v.speed*dt;else p.x+=v.dir*v.speed*dt;if(p.x>125)p.x=-125;if(p.x< -125)p.x=125;if(p.z>125)p.z=-125;if(p.z< -125)p.z=125;}}
-function spawnPolice(){const a=Math.random()*Math.PI*2;const m=carModel(0xf0f2ed,true);m.position.set(playerPos.x+Math.cos(a)*34,0,playerPos.z+Math.sin(a)*34);scene.add(m);policeCars.push({mesh:m,angle:a,speed:0});}
-let policeSpawnTick=0,arrestTick=0;
-function policeStep(dt,time){if(wanted===0){for(const p of policeCars){scene.remove(p.mesh);}policeCars.length=0;return;}policeSpawnTick-=dt;if(policeCars.length<Math.min(6,wanted+1)&&policeSpawnTick<=0){spawnPolice();policeSpawnTick=2.5;}
- let closest=999;for(const p of policeCars){const pos=p.mesh.position;const delta=playerPos.clone().sub(pos);const d=delta.length();closest=Math.min(closest,d);const desired=Math.atan2(delta.x,delta.z);let diff=Math.atan2(Math.sin(desired-p.angle),Math.cos(desired-p.angle));p.angle+=THREE.MathUtils.clamp(diff,-dt*1.6,dt*1.6);const speed=8+wanted*1.7;p.mesh.position.x+=Math.sin(p.angle)*speed*dt;p.mesh.position.z+=Math.cos(p.angle)*speed*dt;p.mesh.rotation.y=p.angle;p.mesh.userData.sirens.forEach((s,i)=>s.material.color.setHex(Math.sin(time*.015)>0?(i===0?0xff2525:0x257fff):(i===0?0x257fff:0xff2525)));}
- if(closest>65){escapeTimer+=dt;if(escapeTimer>18){wanted=Math.max(0,wanted-1);escapeTimer=0;toast(wanted?'경찰을 따돌렸습니다 · 수배 단계 하락':'수배가 해제됐습니다');}}else escapeTimer=0;
- if(!inCar&&closest<3.2){arrestTick+=dt;if(arrestTick>3){health-=18;arrestTick=0;toast('경찰에게 제압당했습니다');if(health<=0){health=100;wanted=0;playerPos.set(0,0,8);cash=Math.max(0,cash-3000);toast('병원에서 깨어났습니다 · 벌금 ₩3,000');}}}else arrestTick=Math.max(0,arrestTick-dt*2);
+// roadside curbs / tactile paving
+for(const v of roads){for(const side of [-1,1]){
+ box(620,.28,.38,concrete,0,.18,v+side*10.55);
+ box(.38,.28,620,concrete,v+side*10.55,.18,0);
+ for(let p=-285;p<285;p+=20){
+  box(1.1,.07,1.8,mat(0xd7c7a2),p,.09,v+side*14.8);
+  box(1.8,.07,1.1,mat(0xd7c7a2),v+side*14.8,.09,p);
+ }
+}}
+
+// Cheonggyecheon stream with stone banks and bridges
+const waterMat=new THREE.MeshPhysicalMaterial({color:0x1d7082,roughness:.18,metalness:.3,clearcoat:1,clearcoatRoughness:.08});
+plane(610,15,waterMat,0,.11,-45);
+for(const side of [-1,1]){
+ plane(610,5.3,mat(0x9a9c90),0,.04,-45+side*10.2);
+ box(610,.45,.55,mat(0xc6c6b7),0,.35,-45+side*13.1);
+ for(let x=-285;x<=285;x+=11){cylinder(.09,.11,1.2,darkMetal,x,.85,-45+side*12.9);}
+ // railing top
+ box(610,.12,.12,mat(0x48575a,.5,.5),0,1.45,-45+side*12.9);
+}
+for(const x of [-160,-80,0,80,160]){
+ const bridge=box(22,.65,23,mat(0x8d9695),x,.22,-45);
+ box(22,.22,1.1,mat(0xbabdb1),x,.68,-56.1);
+ box(22,.22,1.1,mat(0xbabdb1),x,.68,-33.9);
+ for(let i=-9;i<=9;i+=3){box(.12,.7,.12,darkMetal,x+i,.98,-56.1);box(.12,.7,.12,darkMetal,x+i,.98,-33.9);}
 }
 
-// Follow camera and minimap
-function cameraStep(dt){const angle=inCar?inCar.angle:playerAngle;const target=playerPos.clone();target.y=1.2;const distance=inCar?11:9;const desired=new THREE.Vector3(target.x-Math.sin(angle)*distance,target.y+(inCar?5.2:4.8),target.z-Math.cos(angle)*distance);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,target.y+.3,target.z);}
-const mapCtx=$('mapCanvas').getContext('2d');function drawMap(){const c=mapCtx;c.clearRect(0,0,220,220);c.fillStyle='#0c1924';c.fillRect(0,0,220,220);c.save();c.translate(110,110);c.scale(1,-1);const scale=0.78;c.scale(scale,scale);c.translate(-playerPos.x,-playerPos.z);c.strokeStyle='#42515b';c.lineWidth=13;for(const v of roads){c.beginPath();c.moveTo(-130,v);c.lineTo(130,v);c.stroke();c.beginPath();c.moveTo(v,-130);c.lineTo(v,130);c.stroke();}c.strokeStyle='#3a8399';c.lineWidth=11;c.beginPath();c.moveTo(-130,-22);c.lineTo(130,-22);c.stroke();c.fillStyle='#c7ff4a';c.beginPath();c.arc(25,-42,2.8,0,Math.PI*2);c.fill();if(missionState===1){c.fillStyle='#42d9ff';c.beginPath();c.arc(90,45,3,0,Math.PI*2);c.fill();}c.fillStyle='#ff4558';for(const p of policeCars){c.beginPath();c.arc(p.mesh.position.x,p.mesh.position.z,2.2,0,Math.PI*2);c.fill();}c.fillStyle='#fff';c.beginPath();c.arc(playerPos.x,playerPos.z,3.5,0,Math.PI*2);c.fill();c.restore();c.strokeStyle='#ffffff24';c.lineWidth=2;c.strokeRect(3,3,214,214);}
-function updateHud(dt){$('stars').innerHTML=Array.from({length:6},(_,i)=>`<span class="${i<wanted?'on':''}">${i<wanted?'★':'☆'}</span>`).join('');$('healthNum').textContent=Math.round(health)+'%';$('healthBar').style.width=health+'%';$('cash').textContent='₩ '+cash.toLocaleString('ko-KR');$('hint').textContent=inCar?'WASD 운전 · Shift 가속 · E 하차 · J 소란':'WASD 이동 · Space 점프 · Shift 달리기 · E 차량 탑승 · F 미션 · J 소란';drawMap();}
-let last=performance.now(),time=0;function animate(now){requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;time=now;if(gameStarted&&!paused){playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);updateHud(dt);if(pickup.visible)pickup.rotation.y+=dt*.7;if(delivery.visible)delivery.rotation.y+=dt*.7;}renderer.render(scene,camera);}requestAnimationFrame(animate);
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+// Detailed buildings
+const facadeBases=[
+ ['#7f8b91','#354d5d'],['#b3aa98','#73634e'],['#687d87','#263d4b'],
+ ['#9d9a8d','#5c6467'],['#9b8580','#583f43'],['#758b78','#395a4c'],
+ ['#c0b8a7','#776d5d'],['#777b91','#333f5a']
+];
+const frontTextures=facadeBases.map((v,i)=>makeFacade(v[0],v[1],true));
+const sideTextures=facadeBases.map((v,i)=>makeFacade(v[0],v[1],false));
+const buildingData=[];
+function building(x,z,w,d,h,kind='office',index=0){
+ const group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
+ const fi=index%frontTextures.length;
+ const shell=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),[
+  new THREE.MeshStandardMaterial({map:sideTextures[fi],roughness:.8}),
+  new THREE.MeshStandardMaterial({map:sideTextures[(fi+2)%sideTextures.length],roughness:.8}),
+  mat(0x46535a),mat(0x26333a),
+  new THREE.MeshStandardMaterial({map:frontTextures[fi],roughness:.68}),
+  new THREE.MeshStandardMaterial({map:frontTextures[(fi+3)%sideTextures.length],roughness:.8})
+ ]);
+ shell.position.y=h/2;shell.castShadow=true;shell.receiveShadow=true;group.add(shell);
+ box(w+.65,.55,d+.65,mat(0x36464c),0,h+.25,0,group);
+ // rooftop mechanical room, ventilation and water tank
+ box(w*.34,1.1,d*.3,mat(0x657176),w*.18,h+.98,-d*.12,group);
+ for(let k=0;k<2;k++){box(.8,.4,.8,darkMetal,-w*.25+k*1.2,h+.72,d*.2,group);}
+ if(kind==='shop'){
+  const shopNames=['분식','24시 편의점','약국','카페','PC방','치킨','세탁','노래방','김밥','정육점'];
+  addSign(group,shopNames[index%shopNames.length],['#ff5e7a','#43d8fa','#f7d16b','#8ce75b'][index%4],Math.min(w*.9,9),1.3,3.6,d/2+.12);
+  const awning=box(w*.9,.18,1.1,mat([0xd65355,0x246d88,0x4f7955][index%3]),0,2.65,d/2+.5,group);awning.rotation.x=-.08;
+  for(let p=-1;p<=1;p++){box(.08,1.7,.08,mat(0x9caaae),p*w*.28,1.4,d/2+.52,group);}
+ }else if(index%5===0){
+  addSign(group,['종로','서울타워','동대문','SEOUL','명동'][index%5],'#50d7ef',Math.min(w*.78,8),1.1,h*.56,d/2+.1);
+ }
+ // window AC units on selected facades
+ if(index%3===0){for(let r=0;r<Math.min(5,Math.floor(h/7));r++)for(let col=0;col<2;col++){box(.72,.36,.36,mat(0xc2c8c6),-w*.3+col*w*.55,5+r*7,d/2+.24,group);}}
+ buildingData.push({x,z,w,d,h,kind});
+ return group;
+}
+for(let ix=0;ix<roads.length-1;ix++)for(let iz=0;iz<roads.length-1;iz++){
+ const left=roads[ix]+12,right=roads[ix+1]-12,top=roads[iz]+12,bottom=roads[iz+1]-12;
+ const cx=(left+right)/2,cz=(top+bottom)/2;
+ // keep the historic palace forecourt open
+ if(cx>-62&&cx<60&&cz>115&&cz<215)continue;
+ // keep the hanok district mostly low-rise
+ const hanokZone=cx<-125&&cz>95&&cz<220;
+ // river banks and open plazas
+ if(Math.abs(cz+45)<18)continue;
+ const count=hanokZone?0:2+(Math.floor(rand()*3));
+ if(count){
+  for(let n=0;n<count;n++){
+   const x=left+13+rand()*(right-left-26);
+   const z=top+13+rand()*(bottom-top-26);
+   const w=10+rand()*12,d=10+rand()*11;
+   let h=12+rand()*45;
+   if(Math.abs(cx-160)<55&&Math.abs(cz)<75)h+=20;
+   if(Math.abs(cx+80)<50&&Math.abs(cz+160)<50)h+=14;
+   const shop=(n===0||rand()>.68)?'shop':'office';
+   building(x,z,w,d,h,shop,Math.floor(rand()*1000));
+  }
+ }
+}
+// extra dense central blocks and rooftop silhouettes
+for(let i=0;i<24;i++){
+ const x=90+rand()*100,z=-10+rand()*90;
+ building(x,z,7+rand()*7,8+rand()*8,22+rand()*45,rand()>.5?'shop':'office',i+300);
+}
+
+// Trees, planters, benches and street furniture
+const trunkMat=mat(0x60452f),leafMats=[0x2c6849,0x397c54,0x56895a,0x315f4c].map(c=>mat(c,.9));
+function tree(x,z,s=1){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ cylinder(.22*s,.34*s,2.4*s,trunkMat,0,1.2*s,0,g);
+ for(let b=0;b<3;b++){const branch=cylinder(.07*s,.13*s,1.25*s,trunkMat,(b-1)*.26*s,2.05*s,0,g);branch.rotation.z=(b-1)*.38;}
+ for(let i=0;i<5;i++){const leaf=mesh(new THREE.IcosahedronGeometry((.75+rand()*.35)*s,2),leafMats[i%leafMats.length],(rand()-.5)*.9*s,(2.8+rand()*.75)*s,(rand()-.5)*.9*s,g);leaf.scale.set(1.05,1.15,.9);}
+ return g;
+}
+function bench(x,z,rot=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+ box(2,.16,.55,mat(0x70523a),0,.55,0,g);box(2,.75,.12,mat(0x70523a),0,.94,-.22,g);
+ for(const px of [-.75,.75]){box(.12,.52,.15,darkMetal,px,.26,0,g);box(.12,.12,.8,darkMetal,px,.08,0,g);}
+}
+for(let x=-280;x<=280;x+=28){for(const z of [-25,-65,12,68,104,230,-230])if(Math.abs(z+45)>18)tree(x,z,.8+rand()*.4);}
+for(let i=0;i<24;i++){const x=-220+rand()*440,z=-260+rand()*520;if(Math.abs(z+45)>18)bench(x,z,rand()*Math.PI*2);}
+
+// Traditional Bukchon quarter
+function hanok(x,z,scale=1){
+ const g=new THREE.Group();g.position.set(x,0,z);g.scale.setScalar(scale);scene.add(g);
+ const wallMat=new THREE.MeshStandardMaterial({map:makeHanokWall(),roughness:.95});
+ box(9,2.8,7,wallMat,0,1.45,0,g);
+ box(9.5,.24,7.5,mat(0x45362f),0,2.9,0,g);
+ // tiled roof in layered sloping wings
+ const roofMat=mat(0x293d38,.88),eave=mat(0x40594d,.78);
+ const ridge=box(10.4,.35,1.2,roofMat,0,3.55,0,g);
+ for(const side of [-1,1]){
+  const wing=box(10.8,.28,3.2,roofMat,0,3.36,side*1.35,g);wing.rotation.x=side*.16;
+  box(11,.14,3.5,eave,0,3.2,side*1.45,g);
+ }
+ for(const px of [-3.8,0,3.8]){box(.18,2.9,.18,mat(0x654a37),px,1.45,3.58,g);}
+ box(1.4,2,.12,mat(0x593e30),0,1.1,3.62,g);
+ for(let k=0;k<4;k++)cylinder(.12,.12,1.1,mat(0x343f37),-4.3+k*2.8,3.0,0,g);
+ return g;
+}
+for(let x=-220;x<=-142;x+=19)for(let z=112;z<=210;z+=18)hanok(x,z,.9+rand()*.18);
+
+// Palace walls and Gwanghwamun-inspired gate
+const palace=new THREE.Group();palace.position.set(0,0,176);scene.add(palace);
+const stone=mat(0xc2b79f,.88),wood=mat(0x65452f,.83),roofTile=mat(0x243b36,.8);
+box(42,1,3,stone,0,.5,0,palace);
+for(const x of [-16,0,16]){
+ box(2.3,7.5,2.6,stone,x,4,0,palace);
+ box(2.8,.55,3.2,wood,x,7.7,0,palace);
+ box(9,.38,4.8,wood,x,8.2,0,palace);
+ for(const j=-2;j<=2;j++){box(.23,.8,.24,gold,x+j*1.4,8.75,0,palace);}
+}
+box(43,1.1,5,wood,0,9,0,palace);
+const mainRoof=mesh(new THREE.ConeGeometry(24,4.3,4),roofTile,0,11.6,0,palace);mainRoof.rotation.y=Math.PI/4;mainRoof.scale.z=.55;
+box(40,.25,3.8,roofTile,0,10.15,0,palace);
+for(const side of [-1,1]){box(4,.4,4,roofTile,side*21,9.5,0,palace);}
+for(let x=-32;x<=32;x+=8){box(.55,5,.55,stone,x,2.5,12,palace);}
+box(66,.8,1.2,stone,0,.6,14,palace);
+
+// City Hall, DDP-inspired architecture, station and local landmarks
+const cityHall=building(-80,-176,48,34,23,'office',420);
+addSign(cityHall,'서울시청','#48c6dc',17,2.1,13,-17.2);
+const ddp=new THREE.Group();ddp.position.set(190,0,157);scene.add(ddp);
+const ddpBase=mesh(new THREE.SphereGeometry(1,32,18),mat(0x8c9da5,.35,.55),0,13,0,ddp);ddpBase.scale.set(30,14,19);
+const ddpStripe=mesh(new THREE.SphereGeometry(1,32,18),mat(0x263a48,.3,.65),0,13.3,0,ddp);ddpStripe.scale.set(30.4,14.1,19.4);ddpStripe.material.wireframe=true;ddpStripe.material.opacity=.25;ddpStripe.material.transparent=true;
+for(let i=0;i<12;i++){const l=box(.22,.22,24,neonMats[i%neonMats.length],-24+i*4,2,0,ddp);l.rotation.y=.2;}
+const station=building(205,-182,34,24,20,'shop',71);addSign(station,'서울역','#e7bf64',13,1.6,12,12.1);
+
+// Myeongdong signs and retail street
+const retailSpots=[[145,10,'명동 쇼핑거리'],[171,37,'SEOUL BEAUTY'],[193,12,'분식 · 카페'],[126,-8,'24시 편의점'],[180,-25,'홍대 감성'] ];
+for(let i=0;i<retailSpots.length;i++){
+ const s=retailSpots[i];const g=new THREE.Group();g.position.set(s[0],0,s[1]);scene.add(g);
+ const col=['#ff568f','#51d7ff','#ffd45c','#a7ef66','#c4a0ff'][i];
+ addSign(g,s[2],col,9,1.8,5,0);
+ const v=box(.4,4,.45,neonMats[i%neonMats.length],-4.8,2.2,-.1,g);v.material.emissive= new THREE.Color(0x442233); 
+}
+
+// Streetlights, utility poles, crossing signals
+const lampMat=mat(0x303b42,.5,.45),lampGlow=new THREE.MeshBasicMaterial({color:0xffe3aa});
+function streetLamp(x,z,rot=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+ cylinder(.12,.2,6.3,lampMat,0,3.15,0,g);
+ const arm=box(.15,.15,1.8,lampMat,0,6.1,-.75,g);arm.rotation.x=-.08;
+ const head=box(.65,.18,1.1,lampGlow,0,5.95,-1.45,g);
+ const glow=new THREE.PointLight(0xffd49a,.35,15);glow.position.set(0,5.6,-1.5);g.add(glow);
+}
+for(const v of roads)for(let p=-220;p<=220;p+=80){streetLamp(v+12,p,0);streetLamp(p,v-12,Math.PI/2);}
+const signalHeads=[];
+function trafficSignal(x,z,rot=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+ cylinder(.11,.14,5.4,lampMat,0,2.7,0,g);
+ box(1.5,.8,.45,black,0,5.35,-.42,g);
+ const bulbs=[];
+ for(let i=0;i<3;i++){const b=mesh(new THREE.SphereGeometry(.19,12,10),new THREE.MeshBasicMaterial({color:[0x43ca74,0xf4c34d,0xf04e55][i]}),0,5.55-i*.25,-.69,g);bulbs.push(b);}
+ signalHeads.push({bulbs,g});
+}
+for(const x of [-160,0,160])for(const z of [-160,0,160]){trafficSignal(x-11,z-11);trafficSignal(x+11,z+11,Math.PI);}
+
+// Bus shelters and subway entrance
+function busStop(x,z,label){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ box(7,.18,2.2,mat(0x54646b),0,.15,0,g);
+ for(const px of [-3,3]){box(.13,2.5,.13,darkMetal,px,1.4,0,g);box(.13,2.5,.13,darkMetal,px,1.4,-1,g);}
+ box(6.2,.12,2.1,mat(0x3d5966,.3,.35,{transparent:true,opacity:.75}),0,2.65,-.35,g);
+ box(1.1,2.1,.18,mat(0x102c3e),-2.5,1.3,.08,g);
+ addSign(g,label,'#5bd3ed',2.1,.7,2.0,.16);
+ box(2.2,.1,.7,mat(0x303d42),0,.7,.65,g);
+}
+busStop(-38,17,'7016 버스');
+busStop(125,-104,'간선 버스');
+function metroEntrance(x,z,label){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ box(6,.45,4,mat(0x66777b),0,.22,0,g);
+ for(const side of [-1,1])box(5,.22,.35,mat(0x263e48),0,.63,side*1.7,g);
+ box(3.7,.18,2.2,mat(0x1a3444),0,.8,-.35,g);
+ addSign(g,'지하철 '+label,'#49d2db',4,.7,1.4,1.1);
+ for(let i=0;i<6;i++)box(.55,.08,2.4,mat(0x889497),-1.4+i*.55,.9,-.5,g);
+ return {x,z,label};
+}
+const stations=[
+ metroEntrance(-80,-160,'시청'),metroEntrance(0,0,'종로3가'),
+ metroEntrance(160,-160,'동대문'),metroEntrance(-160,-160,'홍대입구'),
+ metroEntrance(0,112,'광화문'),metroEntrance(210,-180,'서울역')
+];
+
+// Park, green space and Seoul plaza
+const park= new THREE.Group();park.position.set(-80,0,0);scene.add(park);
+plane(40,36,grassMat,0,.04,0,park);
+for(let i=0;i<8;i++)tree(-17+(i%4)*10,-12+Math.floor(i/4)*22,.6+rand()*.25);
+for(let i=0;i<4;i++)bench(-92+i*8,-8,0);
+const statueBase=box(5,2.2,5,mat(0xb8a88d),0,1.1,126);
+const statue=mesh(new THREE.SphereGeometry(1.3,18,14),gold,0,4,126);statue.scale.set(.7,1.6,.6);
+cylinder(.6,.9,2,mat(0x6a5a49),0,2.2,126);
+
+// Vehicle construction
+const tireMat=mat(0x11171c,.9),rimMat=mat(0x9aa9ae,.3,.75),headMat=new THREE.MeshStandardMaterial({color:0xfff0cb,emissive:0x80633c,emissiveIntensity:1.2}),tailMat=new THREE.MeshStandardMaterial({color:0xff3c35,emissive:0x9b1614,emissiveIntensity:1});
+function makeCar(color=0xe8e9e6,type='sedan'){
+ const g=new THREE.Group();const bodyMat=mat(color,.38,.22);
+ const length=type==='bus'?8.8:4.7,width=type==='bus'?2.6:2.15;
+ box(width,.72,length,bodyMat,0,.77,0,g);
+ box(width*.87,.18,length*.78,mat(0xe2e3e0,.5),0,1.18,-.05,g);
+ if(type==='bus'){
+  box(width*.86,1.65,length*.77,glassMat,0,2.0,-.05,g);
+  for(let z=-3;z<=3;z+=1.25)box(.05,1.35,.08,mat(0xd8e4e4),width*.45,2,z,g);
+  box(width*.96,.23,length*.88,mat(0x257a91),0,1.25,0,g);
+ }else{
+  const cabin=mesh(new THREE.BoxGeometry(width*.76,.95,length*.46),glassMat,0,1.58,-.25,g);
+  box(width*.78,.08,length*.46,mat(0x1c2b33),0,2.04,-.25,g);
+  for(const side of [-1,1]){
+   box(.06,.82,2.0,mat(0x172a37),side*width*.39,1.56,-.3,g);
+   box(.1,.08,1.25,mat(0xc8d0d1),side*width*.48,1.15,.08,g);
+  }
+  box(width*.9,.25,.18,bodyMat,0,1.04,length*.48,g);
+ }
+ // bumpers, grill, plates and lights
+ box(width*.95,.24,.18,mat(0x252d33),0,.55,length*.49,g);
+ box(width*.95,.22,.18,mat(0x252d33),0,.55,-length*.49,g);
+ box(.9,.28,.05,mat(0x1c2429),0,.83,length*.505,g);
+ box(.72,.16,.06,mat(0xe8eceb),0,.82,length*.52,g);
+ for(const x of [-width*.36,width*.36]){
+  box(.34,.2,.12,headMat,x,.93,length*.51,g);
+  box(.28,.18,.12,tailMat,x,.88,-length*.51,g);
+ }
+ const wheels=[];
+ for(const x of [-width*.53,width*.53])for(const z of [-length*.32,length*.32]){
+  const w=mesh(new THREE.CylinderGeometry(.42,.42,.27,20),tireMat,x,.43,z,g);w.rotation.z=Math.PI/2;wheels.push(w);
+  const hub=mesh(new THREE.CylinderGeometry(.2,.2,.29,16),rimMat,x,.43,z,g);hub.rotation.z=Math.PI/2;
+  for(let a=0;a<5;a++){const spoke=box(.06,.32,.03,mat(0xe3e8e7,.3,.7),x+(x>0?.15:-.15),.43,z,g);spoke.rotation.y=a*Math.PI/5;spoke.rotation.z=Math.PI/2;}
+ }
+ if(type==='taxi'){
+  box(.75,.2,.45,mat(0x1a2329),0,2.13,0,g);addSign(g,'TAXI','#ffe45d',.62,.25,2.28,.24);
+ }
+ if(type==='bus'){addSign(g,'서울 시내버스','#62dfc4',2.5,.45,2.9,0);}
+ g.userData.wheels=wheels;g.userData.type=type;return g;
+}
+function makePoliceCar(){
+ const g=makeCar(0xe9eceb,'sedan');
+ const blue=mat(0x1e5591,.45,.25);box(2.2,.24,2.2,blue,0,1.1,-.25,g);
+ box(2.23,.14,2.4,mat(0xf4f4ed),0,1.25,-.25,g);
+ addSign(g,'경찰 POLICE','#5db4ed',1.45,.3,1.35,2.44);
+ const bar=box(.9,.15,.35,mat(0x151d24),0,2.17,-.3,g);
+ const red=new THREE.Mesh(new THREE.BoxGeometry(.38,.2,.22),new THREE.MeshBasicMaterial({color:0xff263d}));
+ const blueL=new THREE.Mesh(new THREE.BoxGeometry(.38,.2,.22),new THREE.MeshBasicMaterial({color:0x258bff}));
+ red.position.set(-.23,2.25,-.3);blueL.position.set(.23,2.25,-.3);g.add(red,blueL);
+ g.userData.sirens=[red,blueL];g.userData.wheels=g.userData.wheels||[];return g;
+}
+const vehicles=[],traffic=[],policeCars=[],parked=[];
+const parkedSpecs=[
+ [18,83,0xe8e9e6,'sedan'],[-31,18,0xf2c74a,'taxi'],[128,32,0xd7e2e6,'sedan'],
+ [190,-98,0x246a9b,'bus'],[-170,-104,0xedece6,'sedan'],[85,-180,0xd9e1e0,'sedan'],
+ [150,80,0xd8dfe0,'sedan'],[-115,72,0x282e35,'sedan']
+];
+for(const s of parkedSpecs){const v=makeCar(s[2],s[3]);v.position.set(s[0],0,s[1]);scene.add(v);const data={mesh:v,angle:0,speed:0,parked:true,type:s[3]};vehicles.push(data);parked.push(data);}
+for(let i=0;i<20;i++){
+ const vertical=i%2===0;const road=roads[(i*3+1)%roads.length];
+ const lane=road+(i%4<2?3.4:-3.4);const car=i%9===0?makeCar(0x2681ad,'bus'):i%5===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
+ const v=vertical?{mesh:car,angle:i%3===0?Math.PI:0,speed:7+rand()*4,vertical:true,dir:i%3===0?-1:1}:{mesh:car,angle:i%3===0?Math.PI/2:-Math.PI/2,speed:7+rand()*4,vertical:false,dir:i%3===0?-1:1};
+ car.position.set(vertical?lane:-270+rand()*540,0,vertical?-270+rand()*540:lane);car.rotation.y=v.angle;scene.add(car);vehicles.push(v);traffic.push(v);
+}
+// scooters, parked motorbikes
+function scooter(x,z,rot=0){
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=rot;scene.add(g);
+ cylinder(.28,.28,.16,tireMat,0,.32,-.8,g).rotation.z=Math.PI/2;
+ cylinder(.28,.28,.16,tireMat,0,.32,.8,g).rotation.z=Math.PI/2;
+ box(.43,.42,1.15,mat(0x1e6a91,.35),0,.75,0,g);
+ box(.3,.18,.55,mat(0x1a2530),0,1.05,-.55,g);
+ cylinder(.05,.05,1.0,darkMetal,0,1.25,.75,g);
+ box(.7,.08,.12,darkMetal,0,1.68,.77,g);
+ addSign(g,'배달','#5bea9b',.8,.24,1.25,-.35);
+ return g;
+}
+const scooters=[scooter(25,90),scooter(-45,30,1.2),scooter(145,-22,2.2)];
+
+// Human characters with softer silhouettes
+const skinMat=mat(0xd4a17f,.82),hairMats=[0x211d1c,0x3f3028,0x171d20].map(c=>mat(c));
+function person(shirtColor=0x4c7893,kind='civilian',variant=0){
+ const g=new THREE.Group();const shirt=mat(shirtColor,.8),pants=mat(kind==='police'?0x182c47:([0x2b3340,0x55545a,0x39464a][variant%3]),.9),shoe=mat(0x171b20);
+ const torso=mesh(new THREE.CapsuleGeometry(.36,.58,5,10),shirt,0,1.42,0,g);torso.scale.set(1,.95,.8);
+ const neck=cylinder(.12,.14,.22,skinMat,0,1.95,0,g);
+ const head=mesh(new THREE.SphereGeometry(.27,18,14),skinMat,0,2.2,0,g);head.scale.set(.88,1.08,.9);
+ const hair=mesh(new THREE.SphereGeometry(.28,16,10),hairMats[variant%3],0,2.36,-.025,g);hair.scale.set(1,.53,.98);
+ const leftArm=new THREE.Group();leftArm.position.set(-.4,1.66,0);g.add(leftArm);
+ const rightArm=new THREE.Group();rightArm.position.set(.4,1.66,0);g.add(rightArm);
+ for(const arm of [leftArm,rightArm]){mesh(new THREE.CapsuleGeometry(.105,.52,4,8),shirt,0,-.35,0,arm);mesh(new THREE.SphereGeometry(.12,10,8),skinMat,0,-.7,0,arm);}
+ const leftLeg=new THREE.Group(),rightLeg=new THREE.Group();leftLeg.position.set(-.17,.9,0);rightLeg.position.set(.17,.9,0);g.add(leftLeg,rightLeg);
+ for(const leg of [leftLeg,rightLeg]){mesh(new THREE.CapsuleGeometry(.14,.53,4,8),pants,0,-.36,0,leg);box(.28,.13,.42,shoe,0,-.72,.09,leg);}
+ if(variant%4===0){mesh(new THREE.SphereGeometry(.25,12,10),mat(0x293846),0,2.43,0,g).scale.set(1,.55,1);}
+ if(kind==='police'){box(.64,.22,.53,mat(0x182d4c),0,2.55,0,g);box(.12,.07,.1,mat(0xe2e9e6),0,2.4,.2,g);}
+ return {group:g,leftArm,rightArm,leftLeg,rightLeg,head,torso};
+}
+const player=person(0x2671a0,'player',2);
+player.group.position.set(9,0,104);scene.add(player.group);
+let playerPos=player.group.position,playerAngle=Math.PI;
+const npcs=[];
+const clothing=[0x658c8c,0x8b5c7d,0x456b9a,0xb28a55,0x778b78,0xb0a8a0,0x7d5962,0x3f6577,0xc1a16e,0x4b5365];
+for(let i=0;i<48;i++){
+ const x=-250+rand()*500,z=-250+rand()*500;
+ if(Math.abs(z+45)<20||Math.abs(x)<20&&z>115&&z<210)continue;
+ const model=person(clothing[i%clothing.length],'civilian',i);
+ model.group.position.set(x,0,z);scene.add(model.group);
+ npcs.push({model,target:new THREE.Vector3(x+(rand()-.5)*30,0,z+(rand()-.5)*30),speed:.65+rand()*.55,phase:rand()*8,panic:0});
+}
+
+// Missions and points of interest
+const pois=[
+ {id:'gwang',name:'광화문 광장',district:'종로구',icon:'🏯',x:0,z:125,desc:'광화문과 세종대로'},
+ {id:'bukchon',name:'북촌 한옥마을',district:'종로구',icon:'🏠',x:-180,z:165,desc:'한옥 골목과 언덕길'},
+ {id:'myeong',name:'명동 쇼핑거리',district:'중구',icon:'🛍️',x:165,z:14,desc:'간판이 가득한 번화가'},
+ {id:'stream',name:'청계천 산책로',district:'종로구',icon:'🌊',x:0,z:-45,desc:'도심을 가로지르는 물길'},
+ {id:'cityhall',name:'서울시청',district:'중구',icon:'🏢',x:-80,z:-176,desc:'시청 광장과 도심 빌딩'},
+ {id:'ddp',name:'동대문 디자인 플라자',district:'중구',icon:'✨',x:190,z:157,desc:'곡선형 랜드마크 건축물'},
+ {id:'station',name:'서울역',district:'용산구',icon:'🚉',x:205,z:-182,desc:'서울의 교통 중심지'},
+ {id:'hongdae',name:'홍대 거리',district:'마포구',icon:'🎸',x:-180,z:-190,desc:'공연과 젊은 거리 문화'}
+];
+const stationsData=stations.map((s,i)=>({name:s.label,x:s.x,z:s.z}));
+function createMarker(x,z,color=0xc9fa58){
+ const g=new THREE.Group();g.position.set(x,0,z);scene.add(g);
+ const ring=mesh(new THREE.TorusGeometry(2.3,.15,10,40),new THREE.MeshBasicMaterial({color}),0,.23,0,g);ring.rotation.x=Math.PI/2;
+ const beam=mesh(new THREE.CylinderGeometry(.12,.65,4.4,16,1,true),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.13,side:THREE.DoubleSide}),0,2.25,0,g);
+ const top=mesh(new THREE.SphereGeometry(.42,14,10),new THREE.MeshBasicMaterial({color}),0,4.7,0,g);
+ return g;
+}
+const missionMarker=createMarker(164,14,0xc9fa58);missionMarker.visible=false;
+const destinationMarker=createMarker(0,-45,0x58d8e8);destinationMarker.visible=false;
+let mission=null,navTarget=null,missionState=0;
+const defaultMission={type:'delivery',start:{x:164,z:14},end:{x:-80,z:-176},reward:18000};
+const activePoi=pois[0];
+
+function districtAt(x,z){
+ if(x<-120&&z>90)return 'BUKCHON · 북촌';
+ if(x>110&&z>-45&&z<80)return 'MYEONGDONG · 명동';
+ if(x>115&&z>100)return 'DONGDAEMUN · 동대문';
+ if(x<-110&&z<-100)return 'HONGDAE · 홍대';
+ if(x<-40&&z<-100)return 'CITY HALL · 시청';
+ if(Math.abs(z+45)<20)return 'CHEONGGYECHEON · 청계천';
+ return 'GWANGHWAMUN · 광화문';
+}
+function closestPoi(pos){let best=pois[0],d=Infinity;for(const p of pois){const dd=Math.hypot(p.x-pos.x,p.z-pos.z);if(dd<d){d=dd;best=p;}}return best;}
+
+let cash=12000,health=100,wanted=0,escapeTimer=0,arrestTimer=0,playerVertical=0,gameStarted=false,paused=false,inCar=null;
+let currentWeather=0,timeMode=1,clockMinutes=18*60+40;
+const weatherList=['맑음','흐림','비','안개'];
+const weatherColors=[0x182938,0x293844,0x1c2a37,0x46515a];
+const weatherLabel=['18°C','16°C','14°C','13°C'];
+let rainPoints=null;
+function setWeather(v){
+ currentWeather=(v+weatherList.length)%weatherList.length;
+ scene.background.setHex(weatherColors[currentWeather]);
+ scene.fog.color.setHex(weatherColors[currentWeather]);
+ scene.fog.density=currentWeather===3?.0031:currentWeather===2?.0023:.0015;
+ $('weatherText').textContent=weatherList[currentWeather]+' · '+weatherLabel[currentWeather];
+ if(currentWeather===2&&!rainPoints){
+  const count=800,positions=new Float32Array(count*3);
+  for(let i=0;i<count;i++){positions[i*3]=(rand()-.5)*170;positions[i*3+1]=rand()*70;positions[i*3+2]=(rand()-.5)*170;}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  rainPoints=new THREE.Points(geo,new THREE.PointsMaterial({color:0xa9d8eb,size:.12,transparent:true,opacity:.6}));scene.add(rainPoints);
+ }else if(currentWeather!==2&&rainPoints){scene.remove(rainPoints);rainPoints=null;}
+ toast('날씨가 '+weatherList[currentWeather]+'로 바뀌었습니다');
+}
+function setTimeMode(v){
+ timeMode=(v+3)%3;
+ const vals=[
+  {bg:0x9bb4c5,sun:2.7,hemi:1.5,clock:'08:20'},
+  {bg:0x253849,sun:1.7,hemi:1.2,clock:'18:40'},
+  {bg:0x091323,sun:.35,hemi:.55,clock:'22:30'}
+ ];
+ const t=vals[timeMode];scene.background.setHex(t.bg);if(currentWeather===0)scene.fog.color.setHex(t.bg);
+ sun.intensity=t.sun;hemi.intensity=t.hemi;$('clockText').textContent=t.clock;
+ toast(['아침','노을','야간'][timeMode]+' 시간대로 변경');
+}
+
+// Navigation and mission loop
+function setDestination(p){
+ navTarget={x:p.x,z:p.z,name:p.name};
+ destinationMarker.position.set(p.x,0,p.z);destinationMarker.visible=true;
+ $('routeText').textContent='목적지: '+p.name+' · 직선 거리 '+Math.round(Math.hypot(p.x-playerPos.x,p.z-playerPos.z))+'m';
+ toast(p.name+' 목적지를 설정했습니다');
+ closeOverlay();
+}
+function acceptJob(type){
+ const destinations=pois.filter(p=>p.id!=='gwang');
+ const d=destinations[Math.floor(rand()*destinations.length)];
+ const start=closestPoi(playerPos);
+ const rewards={delivery:18000,taxi:25000,courier:32000};
+ mission={type,start:{x:playerPos.x,z:playerPos.z},end:{x:d.x,z:d.z},targetName:d.name,reward:rewards[type]};
+ missionState=1;missionMarker.position.set(d.x,0,d.z);missionMarker.visible=true;
+ navTarget={x:d.x,z:d.z,name:d.name};
+ $('missionText').textContent=({delivery:'음식 배달',taxi:'승객 운행',courier:'긴급 퀵서비스'}[type])+' · '+d.name;
+ $('routeText').textContent='현재 임무 목적지: '+d.name;
+ $('phoneInfo').textContent='새 일거리를 수락했습니다. '+d.name+'까지 이동하세요.';
+ toast('일거리를 수락했습니다 · 목적지 '+d.name);
+ closeOverlay();
+}
+function interact(){
+ if(inCar){toggleCar();return;}
+ const d=Math.hypot(playerPos.x-(navTarget?navTarget.x:missionMarker.position.x),playerPos.z-(navTarget?navTarget.z:missionMarker.position.z));
+ if(mission&&missionState===1&&d<12){
+  cash+=mission.reward;missionState=2;missionMarker.visible=false;destinationMarker.visible=false;
+  navTarget=null;$('missionText').textContent='임무 완료 · ₩'+mission.reward.toLocaleString('ko-KR')+' 보상 획득';
+  toast('임무 완료! ₩'+mission.reward.toLocaleString('ko-KR')+' 획득');saveGame();return;
+ }
+ let nearest=null,dist=6;
+ for(const n of npcs){const dd=n.model.group.position.distanceTo(playerPos);if(dd<dist){dist=dd;nearest=n;}}
+ if(nearest){toast('시민: "안녕하세요! 서울 구경 중이세요?"');return;}
+ for(const s of stationsData){if(Math.hypot(playerPos.x-s.x,playerPos.z-s.z)<9){toast('지하철역입니다. E를 눌러 빠른 이동하세요');return;}}
+ toast('가까운 미션 목적지나 시민을 찾아보세요');
+}
+function toggleCar(){
+ if(inCar){
+  const v=inCar;v.mesh.visible=true;player.group.visible=true;
+  player.group.position.copy(v.mesh.position);player.group.position.x+=Math.cos(v.angle)*2.8;player.group.position.z-=Math.sin(v.angle)*2.8;
+  playerPos=player.group.position;playerAngle=v.angle;v.speed*=.2;inCar=null;
+  $('vehicleHud').style.display='none';toast('차량에서 내렸습니다');return;
+ }
+ let nearest=null,dist=6;
+ for(const v of parked){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
+ for(const s of scooters){const d=s.position.distanceTo(playerPos);if(d<dist){dist=d;nearest={mesh:s,angle:s.rotation.y,speed:0,parked:true,type:'scooter',isScooter:true};}}
+ if(nearest){inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;$('vehicleHud').style.display='block';toast(nearest.isScooter?'스쿠터에 탑승했습니다':'차량에 탑승했습니다');}
+ else {
+  for(const s of stationsData){if(Math.hypot(playerPos.x-s.x,playerPos.z-s.z)<8){
+   const destinations=stationsData.filter(v=>v.name!==s.name);
+   const target=destinations[Math.floor(rand()*destinations.length)];
+   if(inCar){toggleCar();return;}
+   playerPos.set(target.x+5,0,target.z+5);player.group.position.copy(playerPos);toast(target.name+'역으로 이동했습니다');return;
+  }}
+  toast('가까운 차량이나 지하철역이 없습니다');
+ }
+}
+function raiseWanted(){
+ wanted=Math.min(6,wanted+1);escapeTimer=0;arrestTimer=0;
+ toast('경찰 수배 '+wanted+'단계 · '+ '★'.repeat(wanted));
+}
+function causeTrouble(){if(performance.now()-(causeTrouble.last||0)<1600)return;causeTrouble.last=performance.now();raiseWanted();}
+
+// Save system
+const SAVE_KEY='seoul-crime-save-v2';
+function saveGame(){
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify({x:playerPos.x,z:playerPos.z,angle:playerAngle,cash,health,wanted,timeMode,currentWeather,missionState,mission}));}catch(e){}
+}
+function loadGame(){
+ try{const s=JSON.parse(localStorage.getItem(SAVE_KEY)||'null');if(!s)return false;
+  playerPos.set(Number(s.x)||9,0,Number(s.z)||104);player.group.position.copy(playerPos);playerAngle=Number(s.angle)||Math.PI;
+  cash=Math.max(0,Number(s.cash)||12000);health=Number(s.health)||100;wanted=Math.max(0,Math.min(6,Number(s.wanted)||0));
+  timeMode=Number(s.timeMode)||1;currentWeather=Number(s.currentWeather)||0;setTimeMode(timeMode);setWeather(currentWeather);
+  mission=s.mission||null;missionState=s.missionState||0;
+  if(mission&&missionState===1){missionMarker.position.set(mission.end.x,0,mission.end.z);missionMarker.visible=true;navTarget={x:mission.end.x,z:mission.end.z,name:mission.targetName};}
+  return true;
+ }catch(e){return false;}
+}
+$('continue').onclick=()=>{const has=loadGame();startGame();toast(has?'저장한 서울로 돌아왔습니다':'저장된 게임이 없어 새 게임으로 시작합니다');};
+$('play').onclick=()=>{cash=12000;health=100;wanted=0;mission=null;missionState=0;missionMarker.visible=false;playerPos.set(9,0,104);player.group.position.copy(playerPos);playerAngle=Math.PI;startGame();toast('서울에 오신 것을 환영합니다');};
+function startGame(){$('start').style.display='none';$('hud').style.display='block';$('mobile').style.display=(innerWidth<900||('ontouchstart'in window))?'block':'none';gameStarted=true;cameraStep(.016);updateHud();}
+function toast(text){const el=$('toast');el.textContent=text;el.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.opacity=0,2300);}
+function openOverlay(which){
+ paused=true;$('overlay').style.display='flex';
+ for(const id of ['mapModal','phoneModal','jobsModal'])$(id).style.display='none';
+ $(which).style.display='block';
+ if(which==='mapModal'){drawFullMap();buildPoiList();}
+}
+function closeOverlay(){$('overlay').style.display='none';paused=false;}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeOverlay));
+$('mapButton').onclick=()=>openOverlay('mapModal');
+$('mobilePhone').onclick=()=>openOverlay('phoneModal');
+$('phoneMap').onclick=()=>openOverlay('mapModal');
+$('phoneJobs').onclick=()=>openOverlay('jobsModal');
+$('phoneMetro').onclick=()=>{const nearest=stationsData.reduce((a,b)=>Math.hypot(b.x-playerPos.x,b.z-playerPos.z)<Math.hypot(a.x-playerPos.x,a.z-playerPos.z)?b:a,stationsData[0]);$('phoneInfo').textContent='가까운 역: '+nearest.name+' · 역 근처에서 E를 누르면 다른 역으로 이동합니다.';toast('가까운 지하철역: '+nearest.name);};
+$('phoneWeather').onclick=()=>setWeather(currentWeather+1);
+$('phoneTime').onclick=()=>setTimeMode(timeMode+1);
+$('phoneSave').onclick=()=>{saveGame();$('phoneInfo').textContent='현재 위치와 진행도가 이 기기에 저장되었습니다.';toast('게임을 저장했습니다');};
+document.querySelectorAll('[data-job]').forEach(b=>b.addEventListener('click',()=>acceptJob(b.dataset.job)));
+
+function buildPoiList(){
+ const list=$('poiList');list.innerHTML='';
+ for(const p of pois){
+  const b=document.createElement('button');b.className='poiBtn';
+  b.innerHTML='<span><b>'+p.icon+' '+p.name+'</b><small>'+p.district+' · '+p.desc+'</small></span><span>›</span>';
+  b.onclick=()=>setDestination(p);list.appendChild(b);
+ }
+}
+function drawFullMap(){
+ const c=$('fullMap').getContext('2d'),w=640,h=640;c.clearRect(0,0,w,h);c.fillStyle='#10202a';c.fillRect(0,0,w,h);
+ const sx=1.03,ox=320,oz=320;
+ function px(x){return ox+x*sx;}function pz(z){return oz-z*sx;}
+ c.strokeStyle='#455762';c.lineWidth=14;
+ for(const v of roads){c.beginPath();c.moveTo(px(-285),pz(v));c.lineTo(px(285),pz(v));c.stroke();c.beginPath();c.moveTo(px(v),pz(-285));c.lineTo(px(v),pz(285));c.stroke();}
+ c.fillStyle='#1b6c81';c.fillRect(0,pz(-37),640,17*sx);
+ c.fillStyle='#76857b';c.fillRect(0,pz(-31),640,5*sx);c.fillRect(0,pz(-53),640,5*sx);
+ c.strokeStyle='#8499a3';c.lineWidth=1;
+ for(let x=-240;x<=240;x+=80){for(let z=-240;z<=240;z+=80){c.strokeRect(px(x+8),pz(z+72),64,64);}}
+ const label=(text,x,z,color='#d5e2e9')=>{c.fillStyle=color;c.font='bold 11px sans-serif';c.textAlign='center';c.fillText(text,px(x),pz(z));};
+ label('광화문',0,185,'#f5dba6');label('북촌',-180,215,'#c9fa58');label('명동',165,55,'#ff86b0');label('동대문',190,195,'#7be2ec');label('시청',-80,-205,'#a5c7e4');label('서울역',205,-215,'#f5dba6');label('홍대',-180,-220,'#c5a7ff');label('청계천',0,-45,'#70d1e4');
+ for(const p of pois){c.fillStyle='#c9fa58';c.beginPath();c.arc(px(p.x),pz(p.z),5,0,Math.PI*2);c.fill();}
+ if(navTarget){c.strokeStyle='#51e0f5';c.lineWidth=3;c.beginPath();c.moveTo(px(playerPos.x),pz(playerPos.z));c.lineTo(px(navTarget.x),pz(navTarget.z));c.stroke();c.fillStyle='#52e5f4';c.beginPath();c.arc(px(navTarget.x),pz(navTarget.z),8,0,Math.PI*2);c.fill();}
+ c.fillStyle='#fff';c.beginPath();c.arc(px(playerPos.x),pz(playerPos.z),7,0,Math.PI*2);c.fill();c.strokeStyle='#09151e';c.lineWidth=2;c.stroke();
+}
+function drawMiniMap(){
+ const c=$('mapCanvas').getContext('2d');c.clearRect(0,0,220,220);c.fillStyle='#10212b';c.fillRect(0,0,220,220);
+ c.save();c.translate(110,110);c.rotate(0);c.scale(.55,-.55);c.translate(-playerPos.x,-playerPos.z);
+ c.strokeStyle='#41525b';c.lineWidth=12;for(const v of roads){c.beginPath();c.moveTo(-300,v);c.lineTo(300,v);c.stroke();c.beginPath();c.moveTo(v,-300);c.lineTo(v,300);c.stroke();}
+ c.fillStyle='#1e7488';c.fillRect(-300,-53,600,16);
+ for(const p of pois){c.fillStyle=p===navTarget?'#fff':'#c9fa58';c.beginPath();c.arc(p.x,p.z,4,0,Math.PI*2);c.fill();}
+ for(const s of policeCars){c.fillStyle='#ff5366';c.beginPath();c.arc(s.mesh.position.x,s.mesh.position.z,5,0,Math.PI*2);c.fill();}
+ c.fillStyle='#fff';c.beginPath();c.arc(playerPos.x,playerPos.z,6,0,Math.PI*2);c.fill();c.restore();
+ c.strokeStyle='#d3e7ec55';c.lineWidth=2;c.strokeRect(2,2,216,216);
+}
+$('phoneInfo').textContent='서울에서 자유롭게 이동하고 다양한 일거리를 수락하세요.';
+
+// Input: keyboard, drag camera, mobile directional controls
+const keys={};
+addEventListener('keydown',e=>{
+ const k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();keys[k]=true;
+ if(!gameStarted||e.repeat)return;
+ if(k==='e')toggleCar();if(k==='f')interact();if(k==='j')causeTrouble();
+ if(k==='m')openOverlay('mapModal');if(k==='p')openOverlay('phoneModal');
+ if(k==='q')setWeather(currentWeather+1);if(k==='t')setTimeMode(timeMode+1);
+ if(k==='escape'){if($('overlay').style.display==='flex')closeOverlay();else{paused=!paused;toast(paused?'일시정지':'게임 재개');}}
+});
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
+let drag=false,lastX=0,lastY=0,cameraYaw=0;
+renderer.domElement.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;lastY=e.clientY;});
+addEventListener('pointerup',()=>drag=false);
+addEventListener('pointercancel',()=>drag=false);
+addEventListener('pointermove',e=>{if(drag&&gameStarted&&!inCar&&innerWidth>760){cameraYaw+=(e.clientX-lastX)*.004;lastX=e.clientX;lastY=e.clientY;}});
+function bindHold(id,key){
+ const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;});
+ ['pointerup','pointerleave','pointercancel'].forEach(ev=>el.addEventListener(ev,()=>keys[key]=false));
+}
+bindHold('moveUp','w');bindHold('moveDown','s');bindHold('moveLeft','a');bindHold('moveRight','d');
+bindHold('mobileRun','shift');
+$('mobileJump').addEventListener('pointerdown',e=>{e.preventDefault();jumpRequested=true;});
+$('mobileEnter').addEventListener('pointerdown',e=>{e.preventDefault();toggleCar();});
+$('mobileInteract').addEventListener('pointerdown',e=>{e.preventDefault();interact();});
+$('mobileCrime').addEventListener('pointerdown',e=>{e.preventDefault();causeTrouble();});
+$('mobilePhone').addEventListener('pointerdown',e=>{e.preventDefault();openOverlay('phoneModal');});
+$('mapButton').addEventListener('pointerup',e=>e.stopPropagation());
+$('fullMap').addEventListener('click',e=>{
+ const r=e.target.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*640,z=(1-(e.clientY-r.top)/r.height)*640;
+ const wx=(x-320)/1.03,wz=(320-z)/1.03;
+ const p=pois.reduce((a,b)=>Math.hypot(a.x-wx,a.z-wz)<Math.hypot(b.x-wx,b.z-wz)?a:b,pois[0]);setDestination(p);
+});
+let jumpRequested=false;
+
+// Player and vehicle simulation
+function resolveBuildings(pos,radius){
+ for(const b of buildingData){
+  const minX=b.x-b.w/2-radius,maxX=b.x+b.w/2+radius,minZ=b.z-b.d/2-radius,maxZ=b.z+b.d/2+radius;
+  if(pos.x>minX&&pos.x<maxX&&pos.z>minZ&&pos.z<maxZ){
+   const dx=Math.min(pos.x-minX,maxX-pos.x),dz=Math.min(pos.z-minZ,maxZ-pos.z);
+   if(dx<dz)pos.x=pos.x>b.x?maxX:minX;else pos.z=pos.z>b.z?maxZ:minZ;
+  }
+ }
+ pos.x=THREE.MathUtils.clamp(pos.x,-292,292);pos.z=THREE.MathUtils.clamp(pos.z,-292,292);
+}
+function playerStep(dt){
+ const forward=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);
+ const turn=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);
+ if(inCar){
+  const v=inCar;v.speed+=forward*(keys.shift?31:20)*dt;v.speed*=Math.pow(.986,dt*60);v.speed=THREE.MathUtils.clamp(v.speed,-9,keys.shift?42:30);
+  v.angle+=turn*dt*(1.35+Math.abs(v.speed)*.035)*Math.sign(v.speed||1);
+  v.mesh.rotation.y=v.angle;const next=v.mesh.position.clone();next.x+=Math.sin(v.angle)*v.speed*dt;next.z+=Math.cos(v.angle)*v.speed*dt;
+  resolveBuildings(next,2);v.mesh.position.copy(next);playerPos=v.mesh.position;
+  for(const w of (v.mesh.userData.wheels||[]))w.rotation.x+=v.speed*dt*1.8;
+  $('speed').textContent=Math.round(Math.abs(v.speed)*3.6);
+ }else{
+  playerAngle+=turn*dt*2.7;
+  if(jumpRequested&&player.group.position.y<=.03)playerVertical=7.4;
+  jumpRequested=false;playerVertical-=19*dt;player.group.position.y=Math.max(0,player.group.position.y+playerVertical*dt);if(player.group.position.y===0)playerVertical=0;
+  const speed=keys.shift?9.2:5.2;
+  const dir=new THREE.Vector3(Math.sin(playerAngle+cameraYaw),0,Math.cos(playerAngle+cameraYaw));
+  const next=playerPos.clone().addScaledVector(dir,forward*speed*dt);resolveBuildings(next,.65);player.group.position.x=next.x;player.group.position.z=next.z;playerPos=player.group.position;player.group.rotation.y=playerAngle+cameraYaw;
+  const swing=Math.sin(performance.now()*.012)*.55*Math.abs(forward);
+  player.leftLeg.rotation.x=swing;player.rightLeg.rotation.x=-swing;player.leftArm.rotation.x=-swing*.6;player.rightArm.rotation.x=swing*.6;
+ }
+}
+function npcStep(dt,time){
+ for(const n of npcs){
+  const p=n.model.group.position;const to=n.target.clone().sub(p);
+  const distance=to.length();
+  if(wanted>0&&p.distanceTo(playerPos)<14)n.panic=3;
+  n.panic=Math.max(0,n.panic-dt);
+  if(distance<2||n.panic>0){
+   if(n.panic<=0)n.target.set(THREE.MathUtils.clamp(p.x+(rand()-.5)*36,-270,270),0,THREE.MathUtils.clamp(p.z+(rand()-.5)*36,-270,270));
+  }else{
+   const dir=to.normalize();p.addScaledVector(dir,n.speed*dt);n.model.group.rotation.y=Math.atan2(dir.x,dir.z);
+   const swing=Math.sin(time*.006+n.phase)*.42;n.model.leftLeg.rotation.x=swing;n.model.rightLeg.rotation.x=-swing;
+   n.model.leftArm.rotation.x=-swing*.5;n.model.rightArm.rotation.x=swing*.5;
+  }
+ }
+}
+function trafficStep(dt){
+ for(const v of traffic){
+  if(v.vertical)v.mesh.position.z+=v.dir*v.speed*dt;else v.mesh.position.x+=v.dir*v.speed*dt;
+  if(v.mesh.position.x>285)v.mesh.position.x=-285;if(v.mesh.position.x< -285)v.mesh.position.x=285;
+  if(v.mesh.position.z>285)v.mesh.position.z=-285;if(v.mesh.position.z< -285)v.mesh.position.z=285;
+ }
+}
+
+// Korean police pursuit
+function spawnPolice(){
+ const a=rand()*Math.PI*2;const m=makePoliceCar();m.position.set(playerPos.x+Math.cos(a)*48,0,playerPos.z+Math.sin(a)*48);scene.add(m);
+ policeCars.push({mesh:m,angle:a,speed:0});
+}
+let policeSpawn=0;
+function policeStep(dt,time){
+ if(wanted===0){for(const p of policeCars)scene.remove(p.mesh);policeCars.length=0;escapeTimer=0;return;}
+ policeSpawn-=dt;if(policeCars.length<Math.min(7,wanted+1)&&policeSpawn<=0){spawnPolice();policeSpawn=3.2;}
+ let closest=999;
+ for(const p of policeCars){
+  const delta=playerPos.clone().sub(p.mesh.position),d=delta.length();closest=Math.min(closest,d);
+  const desired=Math.atan2(delta.x,delta.z);let diff=Math.atan2(Math.sin(desired-p.angle),Math.cos(desired-p.angle));
+  p.angle+=THREE.MathUtils.clamp(diff,-dt*1.45,dt*1.45);
+  const speed=9+wanted*2.2;p.mesh.position.x+=Math.sin(p.angle)*speed*dt;p.mesh.position.z+=Math.cos(p.angle)*speed*dt;p.mesh.rotation.y=p.angle;
+  p.mesh.userData.sirens.forEach((s,i)=>s.material.color.setHex(Math.sin(time*.015)>0?(i===0?0xff253e:0x258bff):(i===0?0x258bff:0xff253e)));
+ }
+ if(closest>85){escapeTimer+=dt;if(escapeTimer>21){wanted=Math.max(0,wanted-1);escapeTimer=0;toast(wanted?'경찰 수색망에서 벗어났습니다 · 수배 하락':'수배가 해제됐습니다');}}
+ else escapeTimer=0;
+ if(closest<3.4){arrestTimer+=dt;if(arrestTimer>4){arrestTimer=0;health-=25;toast('경찰에게 검거되었습니다 · 벌금 ₩5,000');cash=Math.max(0,cash-5000);wanted=Math.max(0,wanted-2);if(health<=0){health=100;playerPos.set(9,0,104);player.group.position.copy(playerPos);}}}
+ else arrestTimer=Math.max(0,arrestTimer-dt*2);
+}
+function cameraStep(dt){
+ const angle=inCar?inCar.angle:playerAngle+cameraYaw;const target=playerPos.clone();target.y=inCar?1.25:1.45;
+ const dist=inCar?13:10.5;
+ const desired=new THREE.Vector3(target.x-Math.sin(angle)*dist,target.y+(inCar?5.8:5.2),target.z-Math.cos(angle)*dist);
+ camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,target.y+.2,target.z);
+}
+function updateHud(){
+ const wantedStars=Array.from({length:6},(_,i)=>'<span class="'+(i<wanted?'on':'')+'">'+(i<wanted?'★':'☆')+'</span>').join('');
+ $('stars').innerHTML=wantedStars;$('cash').textContent='₩ '+cash.toLocaleString('ko-KR');
+ $('districtName').textContent=districtAt(playerPos.x,playerPos.z);
+ $('locationTag').textContent='📍 '+closestPoi(playerPos).name;
+ $('missionText').textContent=mission&&missionState===1?({delivery:'음식 배달',taxi:'택시 운행',courier:'긴급 퀵서비스'}[mission.type])+' · '+mission.targetName:'지도 또는 휴대폰에서 첫 임무를 선택하세요';
+ if(navTarget){$('routeText').textContent='목적지: '+navTarget.name+' · '+Math.round(Math.hypot(navTarget.x-playerPos.x,navTarget.z-playerPos.z))+'m';}
+ if(inCar){$('vehicleHud').style.display='block';}else{$('vehicleHud').style.display='none';}
+ drawMiniMap();
+}
+$('mobilePhone').addEventListener('click',()=>openOverlay('phoneModal'));
+
+let last=performance.now(),lastSave=0;
+function animate(now){
+ requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;
+ if(gameStarted&&!paused){
+  playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);
+  if(missionMarker.visible)missionMarker.rotation.y+=dt*.8;if(destinationMarker.visible)destinationMarker.rotation.y-=dt*.55;
+  if(rainPoints){const a=rainPoints.geometry.attributes.position;for(let i=0;i<a.count;i++){a.array[i*3+1]-=dt*32;if(a.array[i*3+1]<0)a.array[i*3+1]=65;}a.needsUpdate=true;rainPoints.position.x=playerPos.x;rainPoints.position.z=playerPos.z;}
+  if(now-lastSave>12000){saveGame();lastSave=now;}
+  updateHud();
+ }
+ renderer.render(scene,camera);
+}
+requestAnimationFrame(animate);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setPixelRatio(Math.min(devicePixelRatio,1.55));renderer.setSize(innerWidth,innerHeight);$('mobile').style.display=(innerWidth<900||('ontouchstart'in window))&&gameStarted?'block':'none';});
+addEventListener('pagehide',saveGame);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveGame();});
+setWeather(0); // clear default
 </script>
 </body>
 </html>
