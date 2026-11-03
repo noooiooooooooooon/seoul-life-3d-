@@ -82,6 +82,7 @@ h1 span{color:var(--lime)}
 #mobileActions button{width:62px;height:43px;font-size:10px}
 #mobileActions .primary{background:var(--lime);border-color:var(--lime);color:#111}
 #mobileActions .mapMini{background:#123443ed}
+#metroFade{display:none;position:fixed;inset:0;z-index:20;background:#02070b;opacity:0;pointer-events:none;transition:opacity .25s}
 @media(max-width:760px){
  .topbar{left:8px;right:8px;top:8px;gap:5px}
  .brand{padding:5px 7px;gap:6px}.brandMark{width:25px;height:25px;font-size:18px}.brandName{font-size:16px}.brandSub{font-size:7px;letter-spacing:1.2px}
@@ -174,8 +175,14 @@ h1 span{color:var(--lime)}
    <button class="appBtn" data-job="courier"><span class="appIcon">🛵</span><b>긴급 퀵서비스</b><small>빠른 배송 · ₩32,000</small></button>
   </div>
   <p class="infoText">미션을 수락하면 지도에 목적지가 표시됩니다. 도착 지점 근처에서 F 키를 누르세요.</p>
+  <div class="modal" id="subwayModal" style="display:none">
+  <div class="modalHead"><h2>SEOUL METRO · 지하철</h2><button class="closeBtn" data-close>닫기 ✕</button></div>
+  <p class="infoText" id="metroInfo">역 입구에서 E를 눌러 승강장에 들어가세요.</p>
+  <div class="poiList" id="metroStations"></div>
+  <p class="infoText">지하 승강장과 열차, 역 선택 이동을 구현한 프로토타입입니다.</p>
  </div>
 </div>
+<div id="metroFade"></div>
 <script>
 (function(){
  const button=document.getElementById('play');
@@ -561,6 +568,34 @@ const stations=[
  metroEntrance(160,-160,'동대문'),metroEntrance(-160,-160,'홍대입구'),
  metroEntrance(0,112,'광화문'),metroEntrance(210,-180,'서울역')
 ];
+let subwayMode=false,subwayStationIndex=-1,metroTravelTimer=0,metroTravelTargetIndex=-1;
+function buildUndergroundStation(station,index){
+ const g=new THREE.Group();g.position.set(station.x,-20,station.z);scene.add(g);
+ const floor=mat(0x596a70,.82),wall=mat(0x283c49,.85),tile=mat(0x9fa7a4,.9),rail=mat(0x30383c,.65,.55);
+ plane(46,34,floor,0,0,0,g);
+ box(46,.55,34,wall,0,9,0,g);
+ box(.6,9,34,wall,-23,4.5,0,g);box(.6,9,34,wall,23,4.5,0,g);
+ box(46,9,.6,wall,0,4.5,-17,g);box(46,9,.6,wall,0,4.5,17,g);
+ box(14,.42,31,tile,-9,.2,0,g);box(.42,.08,30,mat(0xe6bd42),-1.85,.45,0,g);
+ for(let z=-13;z<=13;z+=4)box(13,.035,.08,mat(0x66757a),-9,.43,z,g);
+ for(const x of [6.7,10.2])box(.16,.14,31,rail,x,-.12,0,g);
+ for(let z=-15;z<=15;z+=1.5)box(4.4,.12,.22,mat(0x4c5558),8.45,-.24,z,g);
+ for(let z=-12;z<=12;z+=8){box(.8,8,.8,mat(0x718084),-17,4,z,g);box(.8,8,.8,mat(0x718084),-2,4,z,g);}
+ for(let x=-16;x<=-5;x+=2.7){box(.18,1.25,.9,mat(0x263842),x,.62,-13.6,g);box(.7,.08,.15,mat(0x49d5b9),x,.98,-13.6,g);}
+ box(4,.65,1.3,mat(0x35474f),-10,.8,12,g);
+ addSign(g,station.label+'역 · '+(['5호선','1·3·5호선','1·3호선','2호선','5호선','1·4호선'][index]),'#52dbe4',8,1.2,7.4,-16.55);
+ addSign(g,'승강장 · PLATFORM','#f1cf73',5,.7,5.4,16.55);
+ const train=new THREE.Group();train.position.set(8.45,.3,0);g.add(train);
+ for(let car=0;car<3;car++){const z=-10.4+car*10.4;
+  box(3.05,2.75,9.9,mat(0xe5e9e7,.38,.18),0,1.35,z,train);
+  box(3.08,.28,9.95,mat(0x226b91,.45,.25),0,.55,z,train);
+  box(2.8,.17,9.5,mat(0x172d3b,.25,.25),0,2.72,z,train);
+  for(const side of [-1,1])for(let w=0;w<4;w++)box(.045,1.05,1.55,mat(0x193746,.2,.22),side*1.53,1.8,z-3.5+w*2.25,train);
+ }
+ for(let z=-12;z<=12;z+=6){const l=new THREE.PointLight(0xffe3a5,.65,15);l.position.set(-9,7,z);g.add(l);box(1.5,.12,.35,mat(0xd8e6e8,.4),-9,8,z,g);}
+ return {group:g,train};
+}
+const subwayInteriors=stations.map((station,index)=>buildUndergroundStation(station,index));
 
 // Park, green space and Seoul plaza
 const park= new THREE.Group();park.position.set(-80,0,0);scene.add(park);
@@ -624,12 +659,12 @@ function makePoliceCar(){
 }
 const vehicles=[],traffic=[],policeCars=[],parked=[];
 const parkedSpecs=[
- [18,83,0xe8e9e6,'sedan'],[-31,18,0xf2c74a,'taxi'],[128,32,0xd7e2e6,'sedan'],
+ [14,99,0xe8e9e6,'sedan'],[18,83,0xe8e9e6,'sedan'],[-31,18,0xf2c74a,'taxi'],[128,32,0xd7e2e6,'sedan'],
  [190,-98,0x246a9b,'bus'],[-170,-104,0xedece6,'sedan'],[85,-180,0xd9e1e0,'sedan'],
  [150,80,0xd8dfe0,'sedan'],[-115,72,0x282e35,'sedan']
 ];
 for(const s of parkedSpecs){const v=makeCar(s[2],s[3]);v.position.set(s[0],0,s[1]);scene.add(v);const data={mesh:v,angle:0,speed:0,parked:true,type:s[3]};vehicles.push(data);parked.push(data);}
-for(let i=0;i<24;i++){
+for(let i=0;i<36;i++){
  const vertical=i%2===0;const road=roads[(i*3+1)%roads.length];
  const lane=road+(i%4<2?3.4:-3.4);const car=i%8===0?makeCar(0x167a9d,'bus'):i%4===0?makeCar(0xf1c84e,'taxi'):makeCar([0xe4e8e7,0x38434d,0x788f9e,0x983f42,0xd5d3c8][i%5],'sedan');
  const v=vertical?{mesh:car,angle:i%3===0?Math.PI:0,speed:7+rand()*4,vertical:true,dir:i%3===0?-1:1}:{mesh:car,angle:i%3===0?Math.PI/2:-Math.PI/2,speed:7+rand()*4,vertical:false,dir:i%3===0?-1:1};
@@ -797,30 +832,54 @@ function interact(){
  for(const s of stationsData){if(Math.hypot(playerPos.x-s.x,playerPos.z-s.z)<9){toast('지하철역입니다. E를 눌러 빠른 이동하세요');return;}}
  toast('가까운 미션 목적지나 시민을 찾아보세요');
 }
+function enterSubway(index){
+ if(inCar)return;
+ subwayMode=true;subwayStationIndex=index;playerVertical=0;
+ const station=stationsData[index];playerPos.set(station.x-9,-20,station.z+6);player.group.position.copy(playerPos);
+ player.group.visible=true;toast(station.name+'역 지하 승강장에 도착했습니다');openOverlay('subwayModal');
+}
+function exitSubway(){
+ const station=stationsData[subwayStationIndex];subwayMode=false;playerVertical=0;
+ playerPos.set(station.x-7,0,station.z+8);player.group.position.copy(playerPos);closeOverlay();
+ toast(station.name+'역 지상 출구로 나왔습니다');
+}
+function buildSubwayList(){
+ const list=$('metroStations');if(!list)return;list.innerHTML='';
+ stationsData.forEach((station,index)=>{
+  const b=document.createElement('button');b.className='poiBtn';
+  b.innerHTML='<span><b>🚇 '+station.name+'역</b><small>서울 지하철 · '+(index+1)+'번 운행 구간</small></span><span>'+(index===subwayStationIndex?'현재역':'탑승 ›')+'</span>';
+  b.disabled=index===subwayStationIndex;b.style.opacity=index===subwayStationIndex?'.5':'1';
+  b.addEventListener('click',()=>chooseSubwayDestination(index));list.appendChild(b);
+ });
+ $('metroInfo').textContent=subwayMode?'목적지 역을 선택하세요. 도착 후 E를 누르면 지상으로 나옵니다.':'역 입구 근처에서 E를 눌러 승강장으로 들어가세요.';
+}
+function chooseSubwayDestination(index){
+ if(!subwayMode){toast('먼저 역 입구에서 E를 눌러 승강장에 들어가세요');return;}
+ if(index===subwayStationIndex){toast('현재 역입니다');return;}
+ metroTravelTargetIndex=index;metroTravelTimer=2.4;closeOverlay();
+ $('metroFade').style.display='block';$('metroFade').style.opacity='1';
+ toast('열차 출발 · '+stationsData[index].name+'역으로 이동 중');
+}
 function toggleCar(){
+ if(subwayMode){exitSubway();return;}
  if(inCar){
   const v=inCar;v.mesh.visible=true;player.group.visible=true;
   player.group.position.copy(v.mesh.position);player.group.position.x+=Math.cos(v.angle)*2.8;player.group.position.z-=Math.sin(v.angle)*2.8;
   playerPos=player.group.position;playerAngle=v.angle;v.speed*=.2;inCar=null;
   $('vehicleHud').style.display='none';toast('차량에서 내렸습니다');return;
  }
- let nearest=null,dist=7;
+ let nearest=null,dist=Infinity;
  for(const v of vehicles){const d=v.mesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest=v;}}
- for(const s of scooters){const d=s.position.distanceTo(playerPos);if(d<dist){dist=d;nearest={mesh:s,angle:s.rotation.y,speed:0,parked:true,type:'scooter',isScooter:true};}}
- if(nearest){
+ for(const scooterMesh of scooters){const d=scooterMesh.position.distanceTo(playerPos);if(d<dist){dist=d;nearest={mesh:scooterMesh,angle:scooterMesh.rotation.y,speed:0,parked:true,type:'scooter',isScooter:true};}}
+ let nearestStation=null,stationDist=Infinity;
+ stationsData.forEach((station,index)=>{const d=Math.hypot(playerPos.x-station.x,playerPos.z-station.z);if(d<stationDist){stationDist=d;nearestStation=index;}});
+ if(nearestStation!==null&&stationDist<12&&(!nearest||stationDist<dist)){enterSubway(nearestStation);return;}
+ if(nearest&&dist<7){
   const movingIndex=traffic.indexOf(nearest);if(movingIndex>=0)traffic.splice(movingIndex,1);
   inCar=nearest;player.group.visible=false;nearest.mesh.visible=true;$('vehicleHud').style.display='block';
-  raiseWanted();
-  toast(nearest.isScooter?'스쿠터 절도 신고 접수 · 수배 1단계':'차량 절도 신고 접수 · 수배 레벨 상승');
- }else{
-  for(const station of stationsData){if(Math.hypot(playerPos.x-station.x,playerPos.z-station.z)<8){
-   const destinations=stationsData.filter(v=>v.name!==station.name);
-   const target=destinations[stationsData.indexOf(station)%destinations.length];
-   playerPos.set(target.x+5,0,target.z+5);player.group.position.copy(playerPos);
-   toast('지하철 이동: '+station.name+' → '+target.name+' · 역 선택 기능은 다음 업데이트에서 제공됩니다');return;
-  }}
-  toast('가까운 차량이나 지하철역이 없습니다');
+  raiseWanted();toast(nearest.isScooter?'스쿠터 절도 신고 접수 · 수배 1단계':'차량 절도 신고 접수 · 수배 레벨 상승');return;
  }
+ toast('가까운 차량이나 지하철역이 없습니다');
 }
 function raiseWanted(){
  wanted=Math.min(6,wanted+1);escapeTimer=0;arrestTimer=0;
@@ -840,7 +899,7 @@ function causeTrouble(){
 }
 
 // Save system
-const SAVE_KEY='seoul-crime-save-v3';
+const SAVE_KEY='seoul-crime-save-v4';
 function saveGame(){
  try{localStorage.setItem(SAVE_KEY,JSON.stringify({x:playerPos.x,z:playerPos.z,angle:playerAngle,cash,health,wanted,timeMode,currentWeather,missionState,mission}));}catch(e){}
 }
@@ -873,9 +932,10 @@ if(window.__seoulStartRequested&&window.__seoulStart)window.__seoulStart();
 function toast(text){const el=$('toast');el.textContent=text;el.style.opacity=1;clearTimeout(toast.t);toast.t=setTimeout(()=>el.style.opacity=0,2300);}
 function openOverlay(which){
  paused=true;$('overlay').style.display='flex';
- for(const id of ['mapModal','phoneModal','jobsModal'])$(id).style.display='none';
+ for(const id of ['mapModal','phoneModal','jobsModal','subwayModal'])$(id).style.display='none';
  $(which).style.display='block';
  if(which==='mapModal'){drawFullMap();buildPoiList();}
+ if(which==='subwayModal')buildSubwayList();
 }
 function closeOverlay(){$('overlay').style.display='none';paused=false;}
 document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',closeOverlay));
@@ -883,7 +943,13 @@ $('mapButton').onclick=()=>openOverlay('mapModal');
 $('mobilePhone').onclick=()=>openOverlay('phoneModal');
 $('phoneMap').onclick=()=>openOverlay('mapModal');
 $('phoneJobs').onclick=()=>openOverlay('jobsModal');
-$('phoneMetro').onclick=()=>{const nearest=stationsData.reduce((a,b)=>Math.hypot(b.x-playerPos.x,b.z-playerPos.z)<Math.hypot(a.x-playerPos.x,a.z-playerPos.z)?b:a,stationsData[0]);$('phoneInfo').textContent='가까운 역: '+nearest.name+' · 역 근처에서 E를 누르면 다른 역으로 이동합니다.';toast('가까운 지하철역: '+nearest.name);};
+$('phoneMetro').onclick=()=>{
+ const nearest=stationsData.reduce((a,b)=>Math.hypot(b.x-playerPos.x,b.z-playerPos.z)<Math.hypot(a.x-playerPos.x,a.z-playerPos.z)?b:a,stationsData[0]);
+ const idx=stationsData.indexOf(nearest),dist=Math.hypot(nearest.x-playerPos.x,nearest.z-playerPos.z);
+ if(!subwayMode&&dist>18){$('phoneInfo').textContent='가까운 역은 '+nearest.name+'입니다. 역 입구까지 '+Math.round(dist)+'m 이동하세요.';toast('지하철역까지 이동하세요');return;}
+ if(!subwayMode){enterSubway(idx);return;}
+ openOverlay('subwayModal');
+};
 $('phoneWeather').onclick=()=>setWeather(currentWeather+1);
 $('phoneTime').onclick=()=>setTimeMode(timeMode+1);
 $('phoneSave').onclick=()=>{saveGame();$('phoneInfo').textContent='현재 위치와 진행도가 이 기기에 저장되었습니다.';toast('게임을 저장했습니다');};
@@ -1004,10 +1070,15 @@ function playerStep(dt){
  }else{
   playerAngle+=turn*dt*2.7;
   if(jumpRequested&&player.group.position.y<=.03)playerVertical=7.4;
-  jumpRequested=false;playerVertical-=19*dt;player.group.position.y=Math.max(0,player.group.position.y+playerVertical*dt);if(player.group.position.y===0)playerVertical=0;
-  const speed=keys.shift?11.5:6.6;
+  const floorY=subwayMode?-20:0;
+  if(jumpRequested&&player.group.position.y<=floorY+.03)playerVertical=7.4;
+  jumpRequested=false;playerVertical-=19*dt;player.group.position.y=Math.max(floorY,player.group.position.y+playerVertical*dt);if(player.group.position.y===floorY)playerVertical=0;
+  const speed=keys.shift?13.2:8.0;
   const dir=new THREE.Vector3(Math.sin(playerAngle+cameraYaw),0,Math.cos(playerAngle+cameraYaw));
-  const next=playerPos.clone().addScaledVector(dir,forward*speed*dt);resolveBuildings(next,.65);player.group.position.x=next.x;player.group.position.z=next.z;playerPos=player.group.position;player.group.rotation.y=playerAngle+cameraYaw;
+  const next=playerPos.clone().addScaledVector(dir,forward*speed*dt);
+  if(subwayMode){const st=stationsData[subwayStationIndex];next.x=THREE.MathUtils.clamp(next.x,st.x-20,st.x+20);next.z=THREE.MathUtils.clamp(next.z,st.z-14,st.z+14);}
+  else resolveBuildings(next,.65);
+  player.group.position.x=next.x;player.group.position.z=next.z;playerPos=player.group.position;player.group.rotation.y=playerAngle+cameraYaw;
   const swing=Math.sin(performance.now()*.012)*.55*Math.abs(forward);
   player.leftLeg.rotation.x=swing;player.rightLeg.rotation.x=-swing;player.leftArm.rotation.x=-swing*.6;player.rightArm.rotation.x=swing*.6;
  }
@@ -1058,9 +1129,9 @@ function policeStep(dt,time){
  else arrestTimer=Math.max(0,arrestTimer-dt*2);
 }
 function cameraStep(dt){
- const angle=inCar?inCar.angle:playerAngle+cameraYaw;const target=playerPos.clone();target.y=inCar?1.25:1.45;
- const dist=inCar?13:10.5;
- const desired=new THREE.Vector3(target.x-Math.sin(angle)*dist,target.y+(inCar?5.8:5.2),target.z-Math.cos(angle)*dist);
+ const angle=inCar?inCar.angle:playerAngle+cameraYaw;const target=playerPos.clone();target.y=subwayMode?-18.6:(inCar?1.25:1.45);
+ const dist=inCar?13:(subwayMode?8.5:10.5);
+ const desired=new THREE.Vector3(target.x-Math.sin(angle)*dist,target.y+(inCar?5.8:subwayMode?3.4:5.2),target.z-Math.cos(angle)*dist);
  camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(target.x,target.y+.2,target.z);
 }
 function updateHud(){
@@ -1079,7 +1150,18 @@ let last=performance.now(),lastSave=0;
 function animate(now){
  requestAnimationFrame(animate);const dt=Math.min(.04,(now-last)/1000);last=now;
  if(gameStarted&&!paused){
-  playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);
+  if(metroTravelTimer>0){
+   metroTravelTimer-=dt;
+   if(metroTravelTimer<=0){
+    subwayStationIndex=metroTravelTargetIndex;const st=stationsData[subwayStationIndex];
+    playerPos.set(st.x-9,-20,st.z+6);player.group.position.copy(playerPos);
+    $('metroFade').style.opacity='0';setTimeout(()=>$('metroFade').style.display='none',300);
+    toast(st.name+'역 도착 · 승강장에 내렸습니다');openOverlay('subwayModal');
+   }
+   cameraStep(dt);
+  }else{
+   playerStep(dt);npcStep(dt,now);trafficStep(dt);policeStep(dt,now);cameraStep(dt);
+  }
   if(missionMarker.visible)missionMarker.rotation.y+=dt*.8;if(destinationMarker.visible)destinationMarker.rotation.y-=dt*.55;
   if(rainPoints){const a=rainPoints.geometry.attributes.position;for(let i=0;i<a.count;i++){a.array[i*3+1]-=dt*32;if(a.array[i*3+1]<0)a.array[i*3+1]=65;}a.needsUpdate=true;rainPoints.position.x=playerPos.x;rainPoints.position.z=playerPos.z;}
   if(now-lastSave>12000){saveGame();lastSave=now;}
